@@ -39,6 +39,12 @@ class MicrostructuralState:
     matrix_at_frac: dict[str, float] = field(default_factory=dict)
     """Substitutional + interstitial composition remaining in the BCC matrix
     after precipitation has consumed some elements. Used for Fleischer SS."""
+    wt_pct_C_in_solution: float = 0.0
+    """Carbon weight-percent remaining in the BCC matrix as supersaturated C
+    (i.e. NOT bound up in carbides). Drives the as-quenched intrinsic-martensite
+    strengthening term (Bain distortion + lath-boundary HP + quench stresses)
+    via Speich-Leslie / Krauss correlation. Set to nominal alloy C for
+    untempered states; ~0.003 wt% for fully-tempered states (Wang 2024 APT)."""
     precipitates: list[PrecipitatePopulation] = field(default_factory=list)
     """All precipitate populations (M2C, MC, ...) present in this state."""
 

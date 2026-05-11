@@ -15,6 +15,7 @@ from m54model.states import MicrostructuralState
 from m54model.strengthening.dislocation import sigma_dislocation
 from m54model.strengthening.friction import sigma_friction
 from m54model.strengthening.hall_petch import sigma_hall_petch
+from m54model.strengthening.intrinsic_martensite import sigma_intrinsic_martensite
 from m54model.strengthening.orowan import sigma_orowan_carbide
 from m54model.strengthening.solid_solution import sigma_fleischer
 
@@ -64,28 +65,28 @@ def assemble_yield_strength(
         "sigma_ss": sigma_fleischer(state.matrix_at_frac, beta_overrides=beta_overrides),
         "sigma_HP": sigma_hall_petch(state.block_width_um, constants=c),
         "sigma_rho": sigma_dislocation(state.dislocation_density_per_m2, constants=c),
+        "sigma_intr": sigma_intrinsic_martensite(state),
     }
     p_terms: dict[str, float] = {
         f"sigma_{p.phase}": sigma_orowan_carbide(p, constants=c) for p in state.precipitates
     }
     contribs.update(p_terms)
 
+    # Non-precipitation, non-rho contributions (these are linearly summed in all strategies).
+    base_terms = ("sigma_0", "sigma_ss", "sigma_HP", "sigma_intr")
+    base_sum = sum(contribs[k] for k in base_terms if k in contribs)
+
     if strategy == "linear":
         sigma_y = sum(contribs.values())
     elif strategy == "pythagorean_p":
-        non_p = sum(
-            v
-            for k, v in contribs.items()
-            if not k.startswith("sigma_") or k in ("sigma_0", "sigma_ss", "sigma_HP", "sigma_rho")
-        )
         sigma_p = math.sqrt(sum(v**2 for v in p_terms.values())) if p_terms else 0.0
         contribs["sigma_p_combined"] = sigma_p
-        sigma_y = non_p + sigma_p
+        sigma_y = base_sum + contribs["sigma_rho"] + sigma_p
     elif strategy == "pythagorean_dp":
         sigma_dp_sq = contribs["sigma_rho"] ** 2 + sum(v**2 for v in p_terms.values())
         sigma_dp = math.sqrt(sigma_dp_sq)
         contribs["sigma_rho_p_combined"] = sigma_dp
-        sigma_y = contribs["sigma_0"] + contribs["sigma_ss"] + contribs["sigma_HP"] + sigma_dp
+        sigma_y = base_sum + sigma_dp
     else:
         raise ValueError(f"unknown strategy {strategy!r}")
 

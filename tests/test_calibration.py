@@ -2,19 +2,15 @@
 
 Three anchors per MODEL_PLAN.md §6:
 
-1. DQ                 — Sun 2022, YS 1420 MPa  (currently SKIPPED — see notes)
-2. DQ + T516/10       — Sun 2022, YS 1762 MPa  (PASSES at -4.9 %)
-3. AF550/45 + T425/10 — Sun 2022, YS 1726 MPa  (deferred to Phase 2 — needs kinetics)
+1. **DQ (untempered)**       — Sun 2022, YS 1420 MPa  → PASS at -0.1 %
+2. **DQ + T516/10**          — Sun 2022, YS 1762 MPa  → PASS at -4.9 %
+3. **AF550/45 (untempered)** — Sun 2022, YS 1830 MPa  → PASS at +1.9 %
+4. **AF550/45 + T425/10**    — Sun 2022, YS 1726 MPa  → deferred to Phase 2 (needs kinetics)
 
-The DQ-untempered anchor under-predicts by ~38 % under the corrected dislocation
-formula. The simple Hall-Petch + dislocation + Fleischer decomposition appears
-to miss a substantial 'intrinsic as-quenched martensite' contribution that is
-documented in Krauss 1999 and Galindo-Nava 2015 — sources include lath-boundary
-strengthening (block size badly under-counts boundary area in untempered laths),
-tetragonality of C-supersaturated martensite, and quench-induced internal
-stresses. After tempering this contribution disappears (C drops to ~0.003 wt%,
-laths coarsen) which is why DQ+T calibrates cleanly. Addressing the DQ gap is
-Phase 2 work.
+The DQ and AF (untempered) anchors close cleanly after introducing the
+sigma_intrinsic_martensite term (Speich-Leslie / Krauss empirical fit on
+wt% C in solid solution). The same K calibrates both DQ and AF without
+retuning, which is encouraging.
 """
 
 import pytest
@@ -32,40 +28,27 @@ from m54model.calibration import (
 )
 
 
-def test_dq_t516_10_passes_within_5pct() -> None:
-    """The Phase 1 calibration gate: DQ + T516/10 must hit ±5 % of Sun 2022."""
-    report = evaluate_against_anchor(sun_2022_dq_t516_10(), SUN_2022_DQ_T516_10)
-    assert report.passes_calibration, repr(report)
-
-
-@pytest.mark.skip(
-    reason="Untempered as-quenched intrinsic strength not yet modeled — "
-    "Phase 2 work; see test module docstring."
-)
 def test_dq_passes_within_5pct() -> None:
     report = evaluate_against_anchor(sun_2022_dq(), SUN_2022_DQ)
     assert report.passes_calibration, repr(report)
 
 
-@pytest.mark.skip(
-    reason="Untempered as-quenched intrinsic strength not yet modeled — "
-    "Phase 2 work; see test module docstring."
-)
+def test_dq_t516_10_passes_within_5pct() -> None:
+    report = evaluate_against_anchor(sun_2022_dq_t516_10(), SUN_2022_DQ_T516_10)
+    assert report.passes_calibration, repr(report)
+
+
 def test_af550_45_passes_within_5pct() -> None:
     report = evaluate_against_anchor(sun_2022_af550_45(), SUN_2022_AF550_45)
     assert report.passes_calibration, repr(report)
 
 
-def test_dq_predicts_in_known_under_range() -> None:
-    """Pin the current DQ behavior so a regression is visible.
-
-    Predicted ~880 MPa vs measured 1420; expect a -30 % to -45 % miss until
-    Phase 2 adds the intrinsic-martensite term. If this test starts passing
-    suddenly, something in the framework changed and the anchor gap closed —
-    update this test and the skip marker on test_dq_passes_within_5pct.
-    """
-    report = evaluate_against_anchor(sun_2022_dq(), SUN_2022_DQ)
-    assert -45.0 < report.miss_pct < -30.0, repr(report)
+def test_intrinsic_term_only_in_untempered_states() -> None:
+    """sigma_intr should be > 0 for DQ/AF, == 0 for DQ+T."""
+    r_dq = evaluate_against_anchor(sun_2022_dq(), SUN_2022_DQ)
+    r_dqt = evaluate_against_anchor(sun_2022_dq_t516_10(), SUN_2022_DQ_T516_10)
+    assert r_dq.contributions_MPa["sigma_intr"] > 100  # ~540 MPa for 0.30 wt% C
+    assert r_dqt.contributions_MPa["sigma_intr"] == 0.0
 
 
 def test_strategy_choice_matters_on_tempered() -> None:
@@ -74,5 +57,9 @@ def test_strategy_choice_matters_on_tempered() -> None:
     r_dp = evaluate_against_anchor(
         sun_2022_dq_t516_10(), SUN_2022_DQ_T516_10, strategy="pythagorean_dp"
     )
-    # Linear sum > pythagorean_dp sum (when both contributions positive)
     assert r_lin.predicted_YS_MPa > r_dp.predicted_YS_MPa
+
+
+@pytest.mark.skip(reason="AF + T425/10 anchor needs Phase 2 ausforming-tempering kinetics.")
+def test_af550_45_t425_10_passes_within_5pct() -> None:
+    pass  # Phase 2
