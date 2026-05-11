@@ -2,24 +2,24 @@
 
 > What's been fetched and what still needs your browser/institution. Filename prefix `refNN_` matches Zhu 2025 ref numbers; `sun_refNN_` matches Sun 2022 ref numbers.
 
-## Successfully auto-fetched (5 PDFs, ~20 MB)
+## Successfully auto-fetched (6 PDFs, ~22 MB)
 
 | File | Source | Notes |
 |------|--------|-------|
+| [ref08_Delagnes_2012_cementite-free.pdf](ref08_Delagnes_2012_cementite-free.pdf) | Wayback Machine (snapshot of HAL) | Cementite-free martensitic steels (Acta Mater. 60). Recovered from 2024 archive after live HAL was bot-blocked. |
 | [ref13_Jiang_2017_Nature_ultrastrong.pdf](ref13_Jiang_2017_Nature_ultrastrong.pdf) | dierk-raabe.com (author-hosted) | Landmark NiAl ultrastrong steel paper, Nature 544 (2017). Pages 460-464. |
 | [ref25_Hemphill_1999_US5866066_age_hardenable.pdf](ref25_Hemphill_1999_US5866066_age_hardenable.pdf) | Google Patents | Crucible Materials AerMet-family patent. Inventors: Hemphill & Wert. |
 | [ref26_Jou_2015_US9051635B2_FerriumM54_patent.pdf](ref26_Jou_2015_US9051635B2_FerriumM54_patent.pdf) | Google Patents | **The foundational Ferrium M54 patent.** Sole inventor: H.-J. Jou (QuesTek). Zhu's bibliography misattributes to "X. Cao". |
 | [sun_ref01_Lee_2009_Aircraft_steels_DTIC_ADA494348.pdf](sun_ref01_Lee_2009_Aircraft_steels_DTIC_ADA494348.pdf) | DTIC | US Govt-public review of aircraft steels. |
 | [sun_ref25_Kuehmann_2007_US7160399_nanocarbide_patent.pdf](sun_ref25_Kuehmann_2007_US7160399_nanocarbide_patent.pdf) | Google Patents | Kuehmann & Olson QuesTek nanocarbide IP — parent technology for Ferrium family. |
 
-## Bot-protected, need your browser (10 PDFs)
+## Bot-protected, need your browser or Zotero (9 remaining)
 
-These OA papers are technically open access but the hosts (HAL, Elsevier, SSRN, KIT) all gate with Cloudflare/Anubis/WAF challenges that block `curl`. You can grab them with a browser visit:
+These OA papers are technically open access but the hosts (HAL, Elsevier, SSRN, KIT) all gate with Cloudflare/Anubis/WAF challenges that block `curl`. **Easiest path is to import `references/references.bib` into Zotero** — Zotero will resolve and download with publisher-friendly user-session credentials.
 
 | Ref | Source URL | Save as |
 |-----|------------|---------|
 | Zhu [7] **Mondière 2018 M54 carbides** | https://imt-mines-albi.hal.science/hal-01761384 | `ref07_Mondiere_2018_Ferrium_M54_carbides.pdf` |
-| Zhu [8] Delagnes 2012 cementite-free | https://hal.science/hal-01687325 | `ref08_Delagnes_2012_cementite-free.pdf` |
 | Zhu [28] Jacques 2009 RA round-robin | https://hal.science/hal-00413810 | `ref28_Jacques_2009_RA_roundrobin.pdf` |
 | Zhu [30] Feitosa 2024 maraging 350 | https://publikationen.bibliothek.kit.edu/1000169667 | `ref30_Feitosa_2024_maraging350.pdf` |
 | Zhu [1] Li 2023 UHSS review | https://doi.org/10.1016/j.jmrt.2022.12.177 | `ref01_Li_2023_UHSS_review.pdf` |
@@ -29,7 +29,7 @@ These OA papers are technically open access but the hosts (HAL, Elsevier, SSRN, 
 | Zhu [22] Borbély 2022 Williamson-Hall | https://doi.org/10.1016/j.scriptamat.2022.114768 | `ref22_Borbely_2022_WH_disloc.pdf` |
 | Zhu [41] **B. Wang 2024 M54 carbides** | https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4725560 | `ref41_Wang_2024_M54_multicarbide.pdf` |
 
-**Suggested workflow for these:** open each URL in your browser, hit "Download PDF" or equivalent, save with the suggested filename, drop into `pdf-archive/`, and we'll commit them on a follow-up pass.
+**Suggested workflow:** import `references/references.bib` into Zotero. Zotero will fetch what its OA detector and your institution can resolve. Drop any PDFs that come back into `pdf-archive/` with the suggested filename and we'll commit them on a follow-up pass.
 
 ## Still TODO / parked
 
