@@ -1,0 +1,44 @@
+# Treat these as opaque binaries — no text diff, no merge attempt.
+# `binary` is a built-in macro: `-text -merge -diff`.
+
+# Documents
+*.pdf  binary
+*.docx binary
+*.doc  binary
+*.xlsx binary
+*.xls  binary
+*.pptx binary
+*.ppt  binary
+
+# Images
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.tif  binary
+*.tiff binary
+*.bmp  binary
+*.ico  binary
+
+# Archives
+*.zip  binary
+*.tar  binary
+*.tar.gz binary
+*.tgz  binary
+*.7z   binary
+*.rar  binary
+
+# Compiled / object data
+*.pkl   binary
+*.npy   binary
+*.npz   binary
+*.h5    binary
+*.hdf5  binary
+*.parquet binary
+*.feather binary
+
+# Video / audio (in case)
+*.mp4 binary
+*.mov binary
+*.mp3 binary
+*.wav binary
