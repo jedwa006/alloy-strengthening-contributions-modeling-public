@@ -55,11 +55,15 @@ class StrengtheningConstants:
     """
 
     M_taylor: float
-    """Taylor factor (dimensionless)."""
+    """Taylor factor (dimensionless). Used in Orowan-style formulas. NOT used
+    in dislocation strengthening — that's already absorbed into alpha_BH."""
 
     alpha_BH: float
-    """Bailey-Hirsch coefficient in sigma_rho = alpha * M * G * b * sqrt(rho).
-    Sun uses 0.38 (per Bhadeshia-Honeycombe). Wang/Zhu use 0.25."""
+    """Effective Schmid-averaged prefactor in sigma_rho = alpha_eff * G * b * sqrt(rho).
+    Taylor factor is implicit. Conventions:
+    - Sun 2022 (per Bhadeshia & Honeycombe Steels Ch. 14): alpha = 0.38.
+    - Wang 2024 / Zhu 2025: original form alpha * M * G * b * sqrt(rho) with
+      alpha = 0.25, M = 2.5 → effective alpha_eff = 0.625. We pre-collapse it."""
 
     K_HP_MPa_um_half: float
     """Hall-Petch coefficient with d in micrometers (MPa·µm^(1/2)).
@@ -70,7 +74,8 @@ class StrengtheningConstants:
         if c == Convention.SUN:
             return cls(M_taylor=2.5, alpha_BH=0.38, K_HP_MPa_um_half=230.0)
         if c == Convention.WANG:
-            return cls(M_taylor=2.5, alpha_BH=0.25, K_HP_MPa_um_half=300.0)
+            # Wang/Zhu original: alpha=0.25, M=2.5 → effective 0.625
+            return cls(M_taylor=2.5, alpha_BH=0.625, K_HP_MPa_um_half=300.0)
         raise ValueError(f"unknown convention {c}")
 
 

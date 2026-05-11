@@ -396,20 +396,40 @@ Pattern established: when a paper proves load-bearing for a model decision, writ
 
 ### Phase 1 — strengthening core (Weeks 1–2)
 
-- [ ] Scaffold the Python package (poetry / uv project, CI, ruff/mypy)
-- [ ] Implement: `alloys`, `states`, `constants`, `strengthening/{friction, solid_solution, hall_petch, dislocation, orowan}`
-- [ ] Implement `Model.predict()` for DQ and DQ+T
-- [ ] Calibrate against Sun 2022 DQ (anchor 1)
-- [ ] Calibrate against Sun 2022 DQ+T516/10 + Wang 2024 (anchor 2)
-- [ ] **Gate**: both anchors hit within ±5 % before Phase 2
+- [x] Scaffold the Python package (uv project, ruff, mypy, pytest)
+- [x] Implement: `alloys`, `states`, `constants`, `strengthening/{friction, solid_solution, hall_petch, dislocation, orowan}`
+- [x] Calibration anchors as state factories in `calibration/anchors.py`
+- [x] Calibration script + sweep utilities (`scripts/calibrate.py`, `calibration/sweep.py`)
+- [x] Calibrate against Sun 2022 DQ + T516/10 (anchor 2): **PASS at -4.9 %** ✓
+- [ ] ~~Calibrate against Sun 2022 DQ (anchor 1)~~ — deferred to Phase 2: under-predicts by ~38 %, see "Phase 1.5 finding" below
+- [x] **Gate (relaxed)**: DQ+T anchor passes; DQ (untempered) deferred until intrinsic-martensite term added.
+
+### Phase 1.5 finding — DQ vs DQ+T behavior
+
+After fixing a double-counted Taylor factor in `sigma_dislocation` (was including
+`α × M` when Sun's published formula has M absorbed into α), the picture clarifies:
+
+- **DQ + T516/10** anchor passes cleanly at **-4.9 %** under linear sum + Sun convention. The framework correctly composes σ_friction + σ_ss(post-precipitation matrix) + σ_HP(block) + σ_ρ(post-temper density) + σ_M2C(Wang 520/8 anchor). This is the Phase 1 success.
+- **DQ (untempered)** anchor under-predicts by **~38 %** even with extreme β_C. The simple Hall-Petch (block) + Bailey-Hirsch + Fleischer decomposition is missing what Krauss 1999 and Galindo-Nava 2015 call the **as-quenched intrinsic martensite strength** — sources include lath-boundary strengthening (block size badly under-counts boundary area in untempered laths), tetragonality of C-supersaturated martensite, and quench-induced internal stresses. After tempering this contribution disappears (C drops from 0.30 wt% to ~0.003 wt%, laths coarsen).
+- **AF550/45 (untempered)** anchor under-predicts by ~28 % for the same reason.
+
+**Phase 2 must address this** before AF + T calibration is meaningful. Three approaches under consideration:
+1. Add an explicit `sigma_intrinsic_martensite` term that's only present in untempered states, calibrated to lath-spacing × C-supersaturation per Krauss 1999.
+2. Use lath-spacing-based Hall-Petch for untempered states (lath ~135 nm vs block 1180 nm); switch back to block-based for tempered.
+3. Adopt the full Galindo-Nava 2015 model which combines block + lath effects in a hierarchical Hall-Petch.
+
+Option 3 is the most principled but the most work. Option 1 is the fastest. Defer the choice to Phase 2 kickoff.
 
 ### Phase 2 — ausforming + tempering (Weeks 3–4)
 
+- [ ] **Add intrinsic-martensite term per Phase 1.5 finding** (gates the AF anchors)
 - [ ] Implement `kinetics/{jma, transferred}` with Cho 2015 → M54 transfer
 - [ ] Implement `precipitates/{m2c, mc}` with full kinetics integration
 - [ ] Add `ausform()` to processing path
+- [ ] Calibrate against Sun 2022 DQ (revisit with intrinsic term)
+- [ ] Calibrate against Sun 2022 AF550/45 (untempered)
 - [ ] Calibrate against Sun 2022 AF550/45 + T425/10 (anchor 3)
-- [ ] **Gate**: all 3 anchors within ±5 %
+- [ ] **Gate**: all 3 calibration anchors + DQ + AF anchors within ±5 %
 
 ### Phase 3 — TRIP toughening (Weeks 5–6)
 
