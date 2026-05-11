@@ -49,6 +49,7 @@ def sun_2022_dq() -> MicrostructuralState:
         dislocation_density_per_m2=2.08e15,
         f_austenite=0.0,
         matrix_at_frac=_matrix_dq(),
+        wt_pct_C_in_solution=0.30,  # nominal alloy C, all in supersaturation
         precipitates=[],
         label="Sun 2022 DQ",
     )
@@ -88,6 +89,7 @@ def sun_2022_dq_t516_10() -> MicrostructuralState:
         dislocation_density_per_m2=1.12e15,
         f_austenite=0.0,
         matrix_at_frac=_matrix_tempered(),
+        wt_pct_C_in_solution=0.003,  # Wang 2024 APT: 99% of C consumed by M2C
         precipitates=[m2c],
         label="Sun 2022 DQ + T516/10",
     )
@@ -108,6 +110,7 @@ def sun_2022_af550_45() -> MicrostructuralState:
         dislocation_density_per_m2=7.81e15,
         f_austenite=0.0,
         matrix_at_frac=_matrix_dq(),
+        wt_pct_C_in_solution=0.30,  # ausforming doesn't consume C (no temper yet)
         precipitates=[],
         label="Sun 2022 AF550/45",
     )

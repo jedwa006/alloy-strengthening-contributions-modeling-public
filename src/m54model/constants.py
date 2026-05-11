@@ -36,6 +36,26 @@ SIGMA_AUSTENITE_MPA = 360.0
 """Reverted/retained austenite yield strength used in rule-of-mixtures
 correction. From Li 2026 C64 paper. Only applied when f_A > 0."""
 
+K_INTRINSIC_MARTENSITE_MPA_PER_SQRT_WTPCT = 985.0
+"""As-quenched intrinsic-martensite strengthening coefficient.
+sigma_intrinsic = K * sqrt(wt%C in solid solution).
+
+Calibrated against Sun 2022 DQ anchor (YS 1420 MPa) — with K=985, the
+predicted sigma_y closes to within ±1 % at 0.30 wt%C in solution. AF
+state validates at +1.1 % miss with the same K (no retuning needed for
+ausformed condition).
+
+Physical interpretation: residual carbon-related strengthening NOT
+captured by Fleischer-C — i.e. the Bain-distortion / supersaturation
+contribution + lath-boundary HP that block-based HP under-counts.
+Disappears in tempered states because (a) C drops to ~0.003 wt% and
+(b) laths coarsen during recovery.
+
+For comparison: Speich-Leslie 1972 empirical fit on plain-C steels
+gives sigma_C_total = 1722 * sqrt(wt%C). The 1722 lumps Fleischer-C +
+Bain + lath; our 985 is the residual after Fleischer-C is counted
+separately."""
+
 # ---------- divergent constants — pick a strategy ------------------------------------
 
 
