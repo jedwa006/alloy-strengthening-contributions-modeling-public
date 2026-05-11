@@ -2,25 +2,25 @@
 
 > All PDFs we have locally for the M54 strengthening-contribution model. Filename convention: `<citekey>_<topic>.pdf` matching keys in [`../references/references.bib`](../references/references.bib).
 
-## Status — 63 PDFs locally available
+## Status — 64 PDFs locally available
 
 | Source | Count | How obtained |
 |--------|------:|--------------|
 | Auto-fetched (curl: patents, DTIC, author site) | 5 | Initial OA pull |
 | Wayback machine recovery | 1 | Delagnes 2012 (HAL was bot-blocked live) |
-| **Zotero pull (your fetch via institutional access)** | **57** | The big one |
-| **Total** | **63** in `pdf-archive/` | |
+| **Zotero pull (your fetch via institutional access)** | **57** | The big batch |
+| User-supplied direct (zhu44 Wen 2024) | 1 | Filed from Downloads |
+| **Total** | **64** in `pdf-archive/` | |
 | (Plus 8 in `reference docs/`) | 8 | User-supplied source PDFs (Zhu main, Sun 2022, Patel-Cohen, Olson-Cohen, 5 cited-by) |
-| **Grand total** | **71 PDFs** locally | |
+| **Grand total** | **72 PDFs** locally | |
 
-## Still missing (2 papers)
+## Still missing (1 paper)
 
 | Ref | Why missing | Action |
 |-----|-------------|--------|
-| **zhu11_Wang_2024** | Wasn't included in Zotero pull (likely missed during the import?) | Try adding to Zotero by DOI `10.1016/j.matchar.2024.113623` |
-| **zhu44_Wen_2024** | In Zotero but no PDF attached (institutional access didn't surface a copy) | Worth retrying — Wen 2024 in MSEA 890, DOI `10.1016/j.msea.2023.145923`. HIGH PRIORITY for matrix-ordering modeling. |
+| **zhu11_Wang_2024** | Wasn't included in the Zotero pull | Try adding to Zotero by DOI `10.1016/j.matchar.2024.113623` (Mater. Charact. 208) |
 
-Both are flagged with `note = {NEEDED: ...}` in `references/references.bib`.
+Flagged with `note = {NEEDED: ...}` in `references/references.bib`.
 
 ## File-size note
 
