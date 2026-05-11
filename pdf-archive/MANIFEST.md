@@ -1,48 +1,36 @@
 # PDF Archive Manifest
 
-> What's been fetched and what still needs your browser/institution. Filename prefix `refNN_` matches Zhu 2025 ref numbers; `sun_refNN_` matches Sun 2022 ref numbers.
+> All PDFs we have locally for the M54 strengthening-contribution model. Filename convention: `<citekey>_<topic>.pdf` matching keys in [`../references/references.bib`](../references/references.bib).
 
-## Successfully auto-fetched (6 PDFs, ~22 MB)
+## Status — 63 PDFs locally available
 
-| File | Source | Notes |
-|------|--------|-------|
-| [ref08_Delagnes_2012_cementite-free.pdf](ref08_Delagnes_2012_cementite-free.pdf) | Wayback Machine (snapshot of HAL) | Cementite-free martensitic steels (Acta Mater. 60). Recovered from 2024 archive after live HAL was bot-blocked. |
-| [ref13_Jiang_2017_Nature_ultrastrong.pdf](ref13_Jiang_2017_Nature_ultrastrong.pdf) | dierk-raabe.com (author-hosted) | Landmark NiAl ultrastrong steel paper, Nature 544 (2017). Pages 460-464. |
-| [ref25_Hemphill_1999_US5866066_age_hardenable.pdf](ref25_Hemphill_1999_US5866066_age_hardenable.pdf) | Google Patents | Crucible Materials AerMet-family patent. Inventors: Hemphill & Wert. |
-| [ref26_Jou_2015_US9051635B2_FerriumM54_patent.pdf](ref26_Jou_2015_US9051635B2_FerriumM54_patent.pdf) | Google Patents | **The foundational Ferrium M54 patent.** Sole inventor: H.-J. Jou (QuesTek). Zhu's bibliography misattributes to "X. Cao". |
-| [sun_ref01_Lee_2009_Aircraft_steels_DTIC_ADA494348.pdf](sun_ref01_Lee_2009_Aircraft_steels_DTIC_ADA494348.pdf) | DTIC | US Govt-public review of aircraft steels. |
-| [sun_ref25_Kuehmann_2007_US7160399_nanocarbide_patent.pdf](sun_ref25_Kuehmann_2007_US7160399_nanocarbide_patent.pdf) | Google Patents | Kuehmann & Olson QuesTek nanocarbide IP — parent technology for Ferrium family. |
+| Source | Count | How obtained |
+|--------|------:|--------------|
+| Auto-fetched (curl: patents, DTIC, author site) | 5 | Initial OA pull |
+| Wayback machine recovery | 1 | Delagnes 2012 (HAL was bot-blocked live) |
+| **Zotero pull (your fetch via institutional access)** | **57** | The big one |
+| **Total** | **63** in `pdf-archive/` | |
+| (Plus 8 in `reference docs/`) | 8 | User-supplied source PDFs (Zhu main, Sun 2022, Patel-Cohen, Olson-Cohen, 5 cited-by) |
+| **Grand total** | **71 PDFs** locally | |
 
-## Bot-protected, need your browser or Zotero (9 remaining)
+## Still missing (2 papers)
 
-These OA papers are technically open access but the hosts (HAL, Elsevier, SSRN, KIT) all gate with Cloudflare/Anubis/WAF challenges that block `curl`. **Easiest path is to import `references/references.bib` into Zotero** — Zotero will resolve and download with publisher-friendly user-session credentials.
+| Ref | Why missing | Action |
+|-----|-------------|--------|
+| **zhu11_Wang_2024** | Wasn't included in Zotero pull (likely missed during the import?) | Try adding to Zotero by DOI `10.1016/j.matchar.2024.113623` |
+| **zhu44_Wen_2024** | In Zotero but no PDF attached (institutional access didn't surface a copy) | Worth retrying — Wen 2024 in MSEA 890, DOI `10.1016/j.msea.2023.145923`. HIGH PRIORITY for matrix-ordering modeling. |
 
-| Ref | Source URL | Save as |
-|-----|------------|---------|
-| Zhu [7] **Mondière 2018 M54 carbides** | https://imt-mines-albi.hal.science/hal-01761384 | `ref07_Mondiere_2018_Ferrium_M54_carbides.pdf` |
-| Zhu [28] Jacques 2009 RA round-robin | https://hal.science/hal-00413810 | `ref28_Jacques_2009_RA_roundrobin.pdf` |
-| Zhu [30] Feitosa 2024 maraging 350 | https://publikationen.bibliothek.kit.edu/1000169667 | `ref30_Feitosa_2024_maraging350.pdf` |
-| Zhu [1] Li 2023 UHSS review | https://doi.org/10.1016/j.jmrt.2022.12.177 | `ref01_Li_2023_UHSS_review.pdf` |
-| Zhu [14] **Xiong 2021 PMS review** | https://doi.org/10.1016/j.pmatsci.2020.100764 | `ref14_Xiong_2021_clustering_review.pdf` |
-| Zhu [18] Zhao 2022 phase-field | https://doi.org/10.1016/j.jmrt.2022.09.032 | `ref18_Zhao_2022_phase_field.pdf` |
-| Zhu [19] Zhang 2024 NiAl HSLA | https://doi.org/10.1016/j.matdes.2024.112927 | `ref19_Zhang_2024_NiAl_HSLA.pdf` |
-| Zhu [22] Borbély 2022 Williamson-Hall | https://doi.org/10.1016/j.scriptamat.2022.114768 | `ref22_Borbely_2022_WH_disloc.pdf` |
-| Zhu [41] **B. Wang 2024 M54 carbides** | https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4725560 | `ref41_Wang_2024_M54_multicarbide.pdf` |
+Both are flagged with `note = {NEEDED: ...}` in `references/references.bib`.
 
-**Suggested workflow:** import `references/references.bib` into Zotero. Zotero will fetch what its OA detector and your institution can resolve. Drop any PDFs that come back into `pdf-archive/` with the suggested filename and we'll commit them on a follow-up pass.
+## File-size note
 
-## Still TODO / parked
+`pdf-archive/` is now ~380 MB. Repo total is ~450 MB including `reference docs/`. This is fine for git but on the edge of where Git LFS becomes attractive — especially if/when this repo gets pushed to a remote (GitHub free-tier soft caps repos at ~1 GB and warns above ~100 MB single-file). We can migrate the `pdf-archive/` and `reference docs/` paths to LFS later with one command if needed; the `.gitattributes` already marks PDFs as binary so the conversion will be clean.
 
-- **Zhu [3] Xu/Qian 2025 rail bright bands** — SSRN preprint id 4956737. Cloudflare-blocked. Low priority anyway.
-- **Sun [11] Cho 2015** (Metall. Mater. Trans. A 46, 1535) — *ausformed Co-Ni precipitation kinetics* — paywalled at Springer. **High priority** for the model; likely user-institutional.
-- **Sun [21] Galindo-Nava 2015** (Acta Mater. 98, 81) — *lath martensite model* — paywalled at Elsevier. High priority.
-- **Sun [20] Krauss 1999** (MSEA, "Martensite in steel") — paywalled. Foundational equation reference.
-- **Sun [7] Lee Tech Memo 2015** (Patuxent River) — Navy tech memo, source of K_IC = 126 MPa·m^½ for M54. May be on DTIC under a different ADA number.
+## Index by citekey (in `references/references.bib`)
 
-## Tally
+The .bib file's `file = {...}` field on each entry points to the local PDF. To open any reference's PDF directly from the .bib, use a tool like Zotero, JabRef, or BibDesk — or just grep:
 
-- 5 of ~15 target OA refs fetched cleanly via `curl`.
-- 10 OA refs reachable via browser; bot-protected against curl.
-- 4+ high-priority paywalled refs flagged for institutional access.
-
-The win rate for direct curl fetches is roughly: **patents (3/3), DTIC (1/1), author personal sites (1/1), aggregator OA repos (0/4)**, **publisher hybrid OA (0/5)**, **preprint servers (0/2)**. Aggregator-and-publisher hosts have all rolled out Cloudflare/Anubis challenges in the last year+.
+```bash
+grep -A1 "@article{zhu07" references/references.bib | grep "file ="
+# -> file = {pdf-archive/zhu07_Mondiere_2018_Ferrium_M54_carbides.pdf}
+```
