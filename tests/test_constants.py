@@ -26,7 +26,9 @@ def test_sun_convention() -> None:
 def test_wang_convention() -> None:
     wang = StrengtheningConstants.from_convention(Convention.WANG)
     assert wang.M_taylor == 2.5
-    assert wang.alpha_BH == 0.25
+    # Wang's original (alpha=0.25, M=2.5) is collapsed into effective alpha_eff=0.625
+    # since dislocation.py absorbs M into alpha to match Sun's convention.
+    assert wang.alpha_BH == 0.625
     assert wang.K_HP_MPa_um_half == 300.0
 
 
