@@ -2,25 +2,22 @@
 
 > All PDFs we have locally for the M54 strengthening-contribution model. Filename convention: `<citekey>_<topic>.pdf` matching keys in [`../references/references.bib`](../references/references.bib).
 
-## Status — 64 PDFs locally available
+## Status — 65 PDFs locally available (full coverage)
 
 | Source | Count | How obtained |
 |--------|------:|--------------|
 | Auto-fetched (curl: patents, DTIC, author site) | 5 | Initial OA pull |
 | Wayback machine recovery | 1 | Delagnes 2012 (HAL was bot-blocked live) |
-| **Zotero pull (your fetch via institutional access)** | **57** | The big batch |
+| **Zotero pull #1 (your fetch via institutional access)** | **57** | The big batch |
 | User-supplied direct (zhu44 Wen 2024) | 1 | Filed from Downloads |
-| **Total** | **64** in `pdf-archive/` | |
+| **Zotero pull #2 (zhu11 Wang 2024)** | **1** | Re-export caught the missing one |
+| **Total** | **65** in `pdf-archive/` | |
 | (Plus 8 in `reference docs/`) | 8 | User-supplied source PDFs (Zhu main, Sun 2022, Patel-Cohen, Olson-Cohen, 5 cited-by) |
-| **Grand total** | **72 PDFs** locally | |
+| **Grand total** | **73 PDFs** locally | |
 
-## Still missing (1 paper)
+## Coverage: 73 / 73 papers in references.bib are now local. ✓
 
-| Ref | Why missing | Action |
-|-----|-------------|--------|
-| **zhu11_Wang_2024** | Wasn't included in the Zotero pull | Try adding to Zotero by DOI `10.1016/j.matchar.2024.113623` (Mater. Charact. 208) |
-
-Flagged with `note = {NEEDED: ...}` in `references/references.bib`.
+No outstanding `NEEDED:` flags remain in `references/references.bib`.
 
 ## File-size note
 
