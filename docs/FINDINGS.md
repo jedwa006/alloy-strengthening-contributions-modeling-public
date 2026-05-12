@@ -1846,6 +1846,70 @@ Notebook 02 now has the full cw/cr figure set the manuscript will need:
   Shows U<sub>matrix</sub> + U<sub>film</sub> contributions per CR
   alongside measured U with error bars.
 
+### Phase 3.9b — Morphology-dependent κ<sub>film</sub>(CR) `[Phase 3.9b]`
+
+Extends Phase 3.9a's single-κ<sub>film</sub> Maresca-anchored U predictor
+with a per-CR table that captures the Ch 4 §"Phase distribution" film-
+morphology evolution. Calibrated against the user's 4-point measured U
+data:
+
+| CR % | κ<sub>film</sub> | Morphology category (Ch 4) | U_pred | U_meas | miss |
+|---:|---:|---|---:|---:|---:|
+| 0  | 0.50 | trace γ at lath boundaries (baseline) | 209 | 219±13 | −4.5 % |
+| 20 | 0.50 | heterogeneous onset | — | — | — |
+| 40 | 0.55 | connected boundary-following network (20-80 nm) | — | — | — |
+| 47 | 0.40 | transitional bimodal; alignment reduced | 337 | 322±9 | +4.8 % |
+| 53 | 0.20 | transitional bimodal; minimum (possibly outlier) | 280 | 280±12 | −0.0 % |
+| 60 | 0.63 | RD-aligned elongated films; optimal Schmid | 436 | 434±23 | +0.4 % |
+
+**RMSE drops from 15 % (Phase 3.9a uniform κ=0.50) to 3.3 %**; all four
+measured points within ±5 %.
+
+**Mechanism interpretation**: κ<sub>film</sub>(CR) tracks how well the
+film morphology aligns with the tensile-axis-resolved shear stress
+direction for the Schmid-type transformation (per Maresca-Kouznetsova-
+Geers-Curtin 2018 atomistic basis). At 0 % CR the films are at lath
+boundaries (largely transverse to RD per Ch 4 lath-morphological-texture
+analysis r=0.60 at +82°), giving baseline κ. At 40 % CR the films are
+in a connected network that's modestly enhanced. The transitional 47-
+53 % CR band sees reduced alignment as laths pivot from transverse
+toward RD-aligned, with the 53 % point at the geometric minimum. At
+60 % CR the films are elongated and RD-aligned (Ch 4 r=0.93 at −3°),
+giving optimal Schmid orientation and the κ<sub>film</sub> = 0.63 peak.
+
+**Caveat**: 6 free κ parameters versus 4 measured U data points means
+this is necessarily an under-determined fit; the 20 % and 40 % values
+are interpolated. The 53 % minimum might be partly specimen-to-specimen
+variability since the user reports no repeats at that condition.
+
+**Captured in:**
+- `m54model.toughening.maresca_tensile.MORPHOLOGY_KAPPA_FILM_BY_CR` table
+- `predict_tensile_toughness_maresca(..., kappa_film=...)` + `cw_cr_tensile_toughness_sweep(..., use_morphology_kappa=True)`
+- 5 new tests; 174 total pass.
+
+### Phase 3.Y — Suveen-facing report polish + paper outline `[Phase 3.Y]`
+
+Two manuscript-preparation deliverables landing alongside Phase 3.9b:
+
+- `docs/CW_CR_PROGRESS_REPORT_2026_05_12.md` rewritten to follow the
+  Chapter 2 STYLE_GUIDE conventions (detached 3rd-person, varied
+  sentence rhythm, single-hyphen compound terms, no em-dashes in main
+  body, inline author/year citations Pandoc-style). Sections refactored
+  for direct copy-into-Ch5 use: §1 framework + Maresca framing; §2
+  three σ<sub>y</sub>(CR) approaches with smoking-gun gradient finding;
+  §3 Maresca U predictor (uniform + morphology); §4 figure inventory;
+  §5 strengths / gaps / open questions; §6 open questions for next
+  meeting; full reference list with DOIs.
+
+- `docs/PAPER_OUTLINE_CH5.md` maps the Chapter 5 v0.X draft sections
+  onto repository deliverables. Each manuscript section names what's
+  already in the draft, what the model adds, and which repository
+  module / notebook section / docs page houses the new content. Final
+  §7 is a copy-paste-friendly "manuscript section → repository
+  deliverable" lookup table. Critical pre-submission corrections
+  (Akama 2016 DOI, Maresca-Curtin 2017/2018 citation additions,
+  tensile-toughness units convention) flagged in §6.
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
