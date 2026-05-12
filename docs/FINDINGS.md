@@ -333,11 +333,29 @@ Things we know are wrong or missing, deliberately deferred:
 - **Direction-of-effect bias caught:** model predicts AF+T > DQ+T by 73 MPa,
   but Sun measures AF+T < DQ+T by 36 MPa. Tracked in §5.
 
-### Phase 3 (next)
-- TRIP toughening submodel (Patel-Cohen + Olson-Cohen).
-- Calibrate Olson-Cohen α(T), β(T) against the user's 0/20/40/60 % cw/cr
-  austenite-content data.
-- Validate K_IC against Mondière's 110 MPa·m^(1/2) anchor.
+### Phase 3 v1 — TRIP submodel equations (complete)
+- `m54model.toughening.patel_cohen` — stress-assisted M_s shift.
+  **Reproduces Patel-Cohen 1953 Table I tension slope exactly: +1.07 °C/ksi**
+  for Fe-Ni-C; hydrostatic exact (-0.38 °C/ksi); compression slightly off
+  (0.65 vs PC's 0.72 — likely a slight different molar-volume convention).
+- `m54model.toughening.olson_cohen` — strain-induced sigmoidal kinetics.
+  Reproduces Angel 1954 304 SS curves (saturates ~0.86 at -188 °C / ε=0.6;
+  ~0.20 at 22 °C / ε=0.6).
+- `m54model.toughening.fit_olson_cohen` — scipy least-squares fitter for
+  (α, β) given (ε, f_α′) data; recovers synthetic params to within 1 %.
+- `m54model.calibration.user_trip_data` — placeholder data structure for the
+  user's 0/20/40/60 % cw/cr austenite measurements with conversion to true
+  strain via ε = -ln(1-r). Drop in real values to calibrate M54 reverted-γ
+  Olson-Cohen parameters.
+- 10 new validation tests; all 24 tests now pass.
+
+### Phase 3.5 (next) — Crack-tip K_IC integration
+- HRR (or simpler) crack-tip stress field model.
+- For each material point in plastic zone:
+  - Apply Patel-Cohen U = τγ₀ + σε₀ → stress-assisted M_s shift.
+  - Apply Olson-Cohen with calibrated (α, β) → strain-induced f_α′.
+- Sum transformed-α′ volume → compressive residual stress field → ΔK_IC.
+- Validate against Mondière's M54 K_IC = 110 MPa·m^(1/2) anchor.
 
 ---
 

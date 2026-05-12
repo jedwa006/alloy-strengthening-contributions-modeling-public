@@ -45,6 +45,7 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
 ignore = [
+    "N802",  # function name lowercase (test_low_T, test_RT, etc. — physics names)
     "N803",  # arg name lowercase (we use sigma_y, K_HP, etc. matching physics convention)
     "N806",  # var in func should be lowercase (same reason)
     "N815",  # mixedCase class attrs (we use sigma_y_MPa with unit suffix)
@@ -52,7 +53,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"scripts/build_walkthrough_notebook.py" = ["E501"]  # cell contents inside string literals
+"scripts/build_*_notebook.py" = ["E501"]  # cell contents inside string literals
 
 [tool.mypy]
 python_version = "3.11"
