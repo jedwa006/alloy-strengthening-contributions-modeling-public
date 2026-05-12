@@ -868,6 +868,86 @@ without further visible-value transcription):
 - Mill-load + surface-hardness CSV (kips per pass + HRC after each
   intermediate sample extraction).
 
+### Phase 3.6b — M54-specific Bain ε^V from XRD; bulk V_γ vs ASTAR `[Phase 3.6b]`
+
+User shared two stacked-XRD PDFs + Cu-equivalent workbook for the four
+cw/cr conditions. Built `m54model.xrd` with peak fitting (window-
+integrated above linear baseline), cubic-Bragg lattice extraction,
+Nelson-Riley high-2θ extrapolation, Modified Miller V_γ (Zhu Eq. 1), and
+γ → α′ Bain volumetric strain.
+
+**Per-CR results from the user's bulk Cu-equivalent XRD:**
+
+| CR % | a_α′ NR (Å) | a_γ best (Å) | V_γ (XRD bulk) % | V_γ (ASTAR surface) % | Bain ε^V |
+|---:|---:|---:|---:|---:|---:|
+|  0 | 2.870 | 3.589 | **4.81** |  1.3 ± 0.9 | **+0.0222** |
+| 20 | 2.864 |  —    | 0.16     |  0.5 ± 0.3 |  n/a       |
+| 40 | 2.865 |  —    | 0.01     | **26.4 ± 9** |  n/a       |
+| 60 | 2.863 |  —    | 0.00     | 17.6 ± 8   |  n/a       |
+
+**Key findings:**
+
+1. **M54 ε^V = +0.022, half the textbook +0.04.** Pure α-Fe (a=2.866) +
+   γ-Fe (a=3.591 RT) gives ε^V = +0.018; the often-quoted "+0.04"
+   appears to over-state the RT value (likely picks up thermal-expansion
+   / high-T contributions). M54's +0.022 is consistent with the modest
+   alloying-induced expansion of α′ over pure Fe (Ni, Co, Cr substitution
+   + residual C). Default `epsilon_V` in `crack_tip_KIC` updated from
+   0.04 → `BAIN_EPSILON_V_M54_XRD = 0.022`.
+
+2. **Spatial K_IC ΔK_TRIP halves** as a result. At the M54 baseline
+   (K_matrix = 100, M_s_offset = 0): ΔK_TRIP drops 0.58 → 0.32 MPa·m^½.
+   The Phase 3.6a "ΔK_TRIP < 1 MPa·m^½ at M54 f_A levels" finding
+   becomes "ΔK_TRIP < 0.5 MPa·m^½" — even more clearly matrix-dominated.
+
+3. **XRD bulk V_γ vs ASTAR surface V_γ DIVERGES STRONGLY at 40 % CR.**
+   ASTAR (TDRD-plane scan at one rolling surface): 26.4 % surface γ
+   (the "spike"). Bulk XRD: ~0 %. Two competing reads:
+   (a) Real surface phenomenon, surface-localized in a layer thinner
+       than XRD's effective Cu-Kα penetration (~5-15 µm in Fe). XRD
+       averages it out across the bulk; ASTAR catches it on the surface
+       face it scans.
+   (b) Surface-prep artifact (polishing-induced reverse transformation
+       removing the γ-rich layer before XRD).
+   Either way, the two techniques are measuring genuinely different
+   sample volumes. ASTAR is the right tool for the **surface cellular
+   shear-band network**; XRD reflects bulk phase fractions and is the
+   right tool for the **average Bain ε^V**. Don't conflate them.
+
+4. **α′ a₀ contracts ~0.007 Å from 0 % → 60 % CR** (2.870 → 2.863).
+   Most plausible cause: deformation-induced micro-precipitation
+   (mechanical aging) consuming residual C from solid solution, which
+   contracts a_α. Could also reflect strain-induced removal of
+   tetragonality, or partial reverse-transformation artifacts. Worth
+   checking via the user's HR-XRD high-resolution scans (0p and 6p
+   workbooks) for finer peak shape resolution.
+
+5. **HR-XRD peak fit (Pair Distribution Fxn PDF) confirms the
+   peak-position assignments** at 44.467, 64.692, 82.099, 98.870,
+   116.244, 137.187° Cu-2θ for 110/200/211/220/310/222-α (note the
+   user's stacked-XRD plot mislabels 310-α as 222-α; the HR fit makes
+   the true assignment unambiguous). FWHM (w in the Gauss fit) is
+   broader at higher 2θ, consistent with strain broadening.
+
+**Captured in:**
+- `m54model.xrd` subpackage: `peak_analysis.py` (Bragg + integration +
+  Nelson-Riley + Modified Miller), `bain.py` (ε^V from a₀ pair),
+  `analysis.py` (high-level `analyze_xrd_for_cr` returning
+  `XRDAnalysisResult`).
+- `tests/test_xrd.py` (15 tests).
+- `crack_tip.DEFAULT_EPS_V` switched to `BAIN_EPSILON_V_M54_XRD`.
+- Source workbooks: `data/xrd/experimental/` (private; excluded from
+  public mirror).
+
+**Phase 3.6b done. Remaining for Phase 3.6:**
+- 3.6c HRR-J-controlled refinement of in-zone σ/ε field (currently
+  Williams elastic K-field).
+- 3.6d user tensile-data integration (started in 3.6d-prep; full
+  validation pending stress-strain CSVs).
+- The XRD-vs-ASTAR V_γ disagreement at 40 % CR is itself a finding worth
+  a separate dedicated investigation if/when surface-prep history is
+  recoverable.
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single

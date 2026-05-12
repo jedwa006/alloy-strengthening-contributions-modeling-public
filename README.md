@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.6d-prep: user's tensile + toughness + nanoindentation + XRD trove captured. First model-vs-measurement at 0 % CR baseline shows model over-predicts σ_y by +11 % (1448 vs 1300 ± 30 MPa) — likely the cross-rolled prior history vs simple-AF assumption. Toughness DOUBLES (219 → 434 MPa·m^½) from baseline to 60 % CR; 60 % CR also has highest σ_y AND highest ductility (20 %), inverting the classical CW trade-off. Phase 3.6a (spatial K_IC) result holds: matrix dominates, TRIP < 1 MPa·m^½.
+> **Last updated:** 2026-05-12 — Phase 3.6b: M54-specific Bain ε^V extracted from user's Cu-equivalent XRD = **+0.022** (half the Fe-Ni textbook +0.04). Default `epsilon_V` in `crack_tip_KIC` swapped over → ΔK_TRIP roughly halves (0.58 → 0.32 MPa·m^½ at M54 baseline); the "TRIP < 1 MPa·m^½" finding now reads "< 0.5 MPa·m^½." Bulk-XRD V_γ disagrees strongly with ASTAR at 40 % CR (0 % bulk vs 26 % surface) — the two techniques sample genuinely different volumes; both correct for their scope.
 
 ## Status
 
