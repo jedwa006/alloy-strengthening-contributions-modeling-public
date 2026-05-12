@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.6g + 3.6h landed in parallel. **3.6g (WH)**: classical Williamson-Hall on the user's existing XRD spectra at all four CR conditions gives k = ρ<sub>WH</sub>/ρ<sub>GND</sub> ≈ 0.06-0.13 — i.e. ρ<sub>GND</sub> is ~10× ρ<sub>WH</sub>, the *opposite* of a hidden-SSD reservoir. Confirms Phase 3.6e default `ssd_multiplier = 1.0` is correct; sub-block HP (3.6f) is the right knob for the 60 % CR gap. **3.6h (baseline diagnosis)**: sensitivity sweep at 0 % CR finds the +9 % over-prediction is a 3-way contribution (block size cross-rolled vs simple-AF + f<sub>A</sub> source ASTAR-surface vs XRD-bulk + M2C coarsening rate at 516/10), bracket-consistent with the observed +148 MPa. Added `f_A_source` toggle.
+> **Last updated:** 2026-05-12 — Phase 3.7a: forward-calc auxiliary properties module lands. Tabor hardness + Chapter 5 Eq. 1 phase-correction inverted give per-CR H<sub>α′</sub> predictions matching the paper's measured values within ±6 % at 0/20 % CR using default knobs (no direct hardness calibration). At 40/60 % CR the under-prediction tracks the σ<sub>y</sub> gap. With K<sub>sub</sub>=150, 40/60 % close to ±3 % BUT 20 % over-predicts H<sub>α′</sub> by +17 % — direct evidence that K<sub>sub</sub>=150 is too aggressive at 20 % CR; CR-dependent K<sub>sub</sub>(CR) is the natural fix.
 
 ## Status
 
