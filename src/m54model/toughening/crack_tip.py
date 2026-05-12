@@ -43,13 +43,17 @@ from m54model.toughening.williams_field import (
     irwin_zone_boundary_m,
     williams_k_field,
 )
+from m54model.xrd.bain import BAIN_EPSILON_V_M54_XRD
 
-# Default Fe-Ni transformation strains (Patel-Cohen 1953 §3.2). M54-specific
-# values would come from XRD-measured γ vs α′ lattice parameters; flagged as
-# a Phase 3.6 refinement in docs/FINDINGS.md.
+# Default Fe-Ni transformation strains (Patel-Cohen 1953 §3.2).
 DEFAULT_GAMMA_0 = 0.20
 DEFAULT_EPS_0_DEVIATORIC = 0.04
-DEFAULT_EPS_V = 0.04  # volumetric Bain strain (3 × deviatoric for isotropic)
+
+# Volumetric Bain strain γ → α′. As of Phase 3.6b, defaults to the
+# M54-specific value measured from the user's 0 % CR XRD (+0.022) instead
+# of the textbook Fe-Ni +0.04 used in Phase 3.5. To recover the
+# Phase-3.5 result, pass `epsilon_V=0.04` explicitly to crack_tip_KIC.
+DEFAULT_EPS_V = BAIN_EPSILON_V_M54_XRD
 
 # Steel handbook elastic constants
 DEFAULT_E_GPA = 210.0
