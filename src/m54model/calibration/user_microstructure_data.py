@@ -157,3 +157,60 @@ def grain_size_for_cr(cw_pct: float, *, location: str = "surface") -> GrainSizeS
         if entry.cw_pct == cw_pct and entry.location == location:
             return entry
     raise KeyError(f"no grain-size data for cw_pct={cw_pct}, location={location!r}")
+
+
+# ---------- Rolling-mill setup for the cw/cr series -------------------------------------
+
+
+@dataclass(frozen=True)
+class RollingConditions:
+    """Experimental setup for the user's cold-rolling cw/cr series.
+
+    Capturing this in code so future model decisions (adiabatic-heating
+    estimates, contact-stress estimates, strain-rate dependent terms) can
+    reference the actual conditions rather than guessing.
+    """
+
+    starting_state_label: str
+    """Heat-treatment state of the strips before any cw/cr."""
+
+    rolling_temperature_C: float
+    """Bulk strip temperature at start of pass. Room temp here."""
+
+    surface_T_max_observed_C: float
+    """Maximum surface temperature observed via non-contact IR during/after passes.
+    Important: rules out bulk adiabatic-heating-driven α′→γ reverse-transformation
+    if this stays low. Local shear-band-intersection T may still spike but is not
+    measurable by surface IR."""
+
+    strain_rate_m_per_s: float
+    """Approximate strip-velocity strain rate (not the local plastic strain rate
+    at a material point, which depends on roll-bite geometry)."""
+
+    max_separating_force_MPa: float
+    """Peak separating force per unit area, divided by nominal contact area. Average,
+    not Hertzian-peak. Local contact stress ~2-3× this in the bite."""
+
+    roller_hardness_HRC: float
+    """Roller hardness — affects roller deflection and contact mechanics."""
+
+    roller_finish: str
+    """Surface finish: 'smooth', 'textured', etc."""
+
+    notes: str = ""
+
+
+USER_M54_ROLLING_CONDITIONS = RollingConditions(
+    starting_state_label="AF550/45 + T516/10 (commercial 516 °C/10 h temper applied to ausformed)",
+    rolling_temperature_C=22.0,
+    surface_T_max_observed_C=80.0,  # IR; never exceeded
+    strain_rate_m_per_s=0.05,  # ~5 cm/s strip velocity
+    max_separating_force_MPa=290.0,  # ≈ 42 ksi
+    roller_hardness_HRC=63.0,
+    roller_finish="smooth",
+    notes=(
+        "Strips touchable at all steps (consistent with surface_T_max < 80 °C). "
+        "IR temperature monitored entering and leaving the bite where possible. "
+        "ASTAR + XRD characterization on the TDRD plane at one rolling surface."
+    ),
+)

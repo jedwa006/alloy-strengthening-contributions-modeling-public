@@ -1,6 +1,7 @@
 """Calibration anchors and parameter-sweep utilities."""
 
 from m54model.calibration.anchors import (
+    m54_af550_45_t516_10,
     sun_2022_af550_45,
     sun_2022_af550_45_t425_10,
     sun_2022_dq,
@@ -14,8 +15,10 @@ from m54model.calibration.sweep import (
 from m54model.calibration.user_microstructure_data import (
     USER_M54_GND_DENSITY,
     USER_M54_GRAIN_SIZE,
+    USER_M54_ROLLING_CONDITIONS,
     GNDDensityStats,
     GrainSizeStats,
+    RollingConditions,
     gnd_for_cr,
     grain_size_for_cr,
 )
@@ -36,13 +39,16 @@ __all__ = [
     "AnchorReport",
     "evaluate_against_anchor",
     "sweep_beta_c",
+    "m54_af550_45_t516_10",
     "USER_M54_CW_AUSTENITE_SURFACE",
     "USER_M54_CW_AUSTENITE_CORE",
     "USER_M54_GRAIN_SIZE",
     "USER_M54_GND_DENSITY",
+    "USER_M54_ROLLING_CONDITIONS",
     "CWAustenitePoint",
     "GrainSizeStats",
     "GNDDensityStats",
+    "RollingConditions",
     "cw_pct_to_true_strain",
     "is_monotonic_decreasing",
     "m54_olson_cohen_fit_from_user_data",

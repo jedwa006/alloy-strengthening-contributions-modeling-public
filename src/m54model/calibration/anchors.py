@@ -117,6 +117,45 @@ def sun_2022_af550_45() -> MicrostructuralState:
     )
 
 
+def m54_af550_45_t516_10() -> MicrostructuralState:
+    """M54 AF550/45 + commercial 516 °C / 10 h temper — the **user's cw/cr baseline**.
+
+    NOTE: This is NOT a Sun 2022 anchor (Sun used T425/10). It's the actual
+    starting state for the user's cold-rolling series. Microstructural inputs:
+    - Block width 0.48 µm: from Sun's AF state; tempering doesn't refine block
+      (Wang 2024 confirms block invariant in DQ across 2-10 h tempering).
+    - Dislocation density 1.6 × 10¹⁵ m⁻²: directly from the user's ASTAR-PED
+      measurement at 0 % CR baseline (Table 4). Slightly higher than Sun's
+      AF+T425/10 (1.18 × 10¹⁵), consistent with the longer/hotter 516 °C / 10 h
+      temper retaining slightly more dislocation density via M2C-pinning.
+    - M2C: predicted via `m2c_population_af_tempered(516, 10)` — past peak,
+      LSW-coarsened, V_f at M54-stoichiometry-scaled saturation.
+    - Reverted austenite: 0.013 (= 1.3 % surface) per user's ASTAR phase
+      fraction at 0 % CR. f_austenite_kind set to 'reverted' since cryo
+      removes most retained γ and 516 °C / 10 h is long enough for lath-
+      boundary Ni-enriched reversion.
+    - C in solid solution: ~0.003 wt% (M2C precipitation depletes matrix C).
+
+    No published YS anchor — anchor will come from the user's measurements
+    when available (likely tensile-tested at 0 % CR baseline).
+    """
+    m2c = m2c_population_af_tempered(T_celsius=516.0, t_hours=10.0)
+    return MicrostructuralState(
+        state="af_tempered",
+        block_width_um=0.48,
+        packet_size_um=6.7,
+        pag_width_um=47.0,
+        lath_width_nm=135.0,
+        dislocation_density_per_m2=1.6e15,
+        f_austenite=0.013,
+        f_austenite_kind="reverted",
+        matrix_at_frac=_matrix_tempered(),
+        wt_pct_C_in_solution=0.003,
+        precipitates=[m2c],
+        label="M54 AF550/45 + T516/10 (user's cw/cr baseline)",
+    )
+
+
 def sun_2022_af550_45_t425_10() -> MicrostructuralState:
     """Sun 2022 enhanced commercial route: AF550/45 then 425 °C / 10 h temper.
     Anchor: YS = 1726 MPa.
