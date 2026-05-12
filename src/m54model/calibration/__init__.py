@@ -7,6 +7,13 @@ from m54model.calibration.anchors import (
     sun_2022_dq,
     sun_2022_dq_t516_10,
 )
+from m54model.calibration.strain_rate import (
+    EPS_DOT_SUN_2022_S_INV,
+    EPS_DOT_USER_TENSILE_S_INV,
+    M_TEMPERED_M54_DEFAULT,
+    explain_strain_rate_correction,
+    strain_rate_correction,
+)
 from m54model.calibration.sweep import (
     AnchorReport,
     evaluate_against_anchor,
@@ -54,4 +61,9 @@ __all__ = [
     "m54_olson_cohen_fit_from_user_data",
     "gnd_for_cr",
     "grain_size_for_cr",
+    "strain_rate_correction",
+    "explain_strain_rate_correction",
+    "EPS_DOT_SUN_2022_S_INV",
+    "EPS_DOT_USER_TENSILE_S_INV",
+    "M_TEMPERED_M54_DEFAULT",
 ]
