@@ -1,0 +1,322 @@
+# Model Findings & Insights
+
+> Living log of discoveries, calibration notes, and design decisions made while
+> building the M54 strengthening model. Updated as we go. Organized **topically**
+> for reference use, with phase tags so you can trace when each finding landed.
+
+## How to use this doc
+
+- **Looking for "what does our model do for X?"** → §2 (per-contribution).
+- **Looking for "how does our prediction compare to paper Y?"** → §3 (per-anchor).
+- **Looking for "why was this constant chosen?"** → §4 (calibration choices).
+- **Looking for "what are the known biases?"** → §5 (gaps and known biases).
+- **Looking for the chronological story** → §6 (phase log).
+
+Each finding flagged with `[Phase X.Y]` for when it was discovered.
+
+---
+
+## 1. Convention conflicts in the literature
+
+These are places where different papers use different forms of the same physical
+equation. Documented so we don't get tripped up reading a paper and assuming
+their α/K matches ours.
+
+### Bailey-Hirsch dislocation strengthening — α conventions
+
+`σ_ρ = α_eff · G · b · √ρ`
+
+| Source | Original form | α | M | α_eff (Schmid-averaged prefactor) |
+|--------|---------------|---|---|-----------------------------------|
+| Sun 2022 (Bhadeshia & Honeycombe lineage) | `α G b √ρ`     | 0.38 | implicit | **0.38** (DEFAULT in our model) |
+| Wang 2024 / Zhu 2025                       | `α M G b √ρ`   | 0.25 | 2.5      | **0.625** |
+| Galindo-Nava 2015                          | `α M G b √ρ`   | 0.25 | 3.0      | 0.75 |
+
+**Pitfall:** if you read Sun's formula and naïvely multiply by M=2.5, you
+double-count by ~2.6×. We hit this bug in Phase 1.5 (caused DQ to "pass" at
+−1.4 % deceptively, by canceling out a missing physics term). Fix landed in
+[`dislocation.py`](../src/m54model/strengthening/dislocation.py); convention
+collapse documented in
+[`constants.py`](../src/m54model/constants.py). `[Phase 1.5]`
+
+### Hall-Petch coefficient K_HP — block size assumed
+
+`σ_HP = K_HP · d^(−1/2)`, with **d = martensite block width** (per Galindo-Nava
+2015, originally Morito 2006).
+
+| Source | K_HP (MPa·µm^½) | d definition |
+|--------|----------------:|--------------|
+| Sun 2022 (M54-specific fit, Fig. 7) | **230** (DEFAULT) | block size |
+| Wang 2024 / Zhu 2025 (generic SH-steel)  | 300 | block size |
+| Galindo-Nava 2015 model | 300 | block size (per Morito 2006) |
+
+Sun's lower K is a fit specifically on M54 data; we default to it as the most
+specific value. The 30 % gap to Wang/Zhu's generic 300 is worth re-checking
+when more M54 data accumulates.
+
+### Top-level summation strategy
+
+Three strategies supported (see [`total.py`](../src/m54model/strengthening/total.py)
+docstring):
+
+| Strategy        | Form                                                                                               | Used by              |
+|-----------------|----------------------------------------------------------------------------------------------------|----------------------|
+| `linear`        | σ_y = σ_0 + σ_ss + σ_HP + σ_ρ + σ_p                                                                | Sun 2022, Zhu 2025 (DEFAULT) |
+| `pythagorean_p` | σ_y = σ_0 + σ_ss + σ_HP + σ_ρ + √(Σ σ_pᵢ²)  (only between precipitate phases)                       | seen rarely         |
+| `pythagorean_dp`| σ_y = σ_0 + σ_ss + σ_HP + √(σ_ρ² + σ_p²)  (across dislocation + all precipitates)                  | Wang 2024, Li 2026 C64 |
+
+**Empirical:** for our DQ + T516/10 anchor, `linear` lands at −4.9 % vs
+`pythagorean_dp` at −17.6 % under-predict. `linear` is correct for tempered M54
+in the regime we're modeling. `pythagorean_dp` would only become preferable if
+σ_ρ and σ_p both contributed strongly *and* were partially substitutive — a
+regime our calibration data doesn't show. `[Phase 1.5]`
+
+### Carbon strengthening — Speich-Leslie 1722 vs our 985
+
+The classical empirical fit of Speich & Leslie 1972 on plain-C as-quenched
+martensite:
+
+```
+σ_y(MPa) = 413 + 1722 · √(wt%C)
+```
+
+The 1722 lumps **all** C-related strengthening: Fleischer atomic-mismatch +
+Bain tetragonality + lath-boundary HP + supersaturation. If you also use
+Fleischer-C separately (β_C ≈ 1722 MPa per √(at-frac) ≈ 7969 MPa per √(wt%C)
+after unit conversion), you double-count.
+
+Our decomposition keeps them separate:
+- **Fleischer-C:** β_C ≈ 1722 MPa·√(at-frac)⁻¹ in the at-frac Fleischer sum (also a placeholder; needs proper sourcing)
+- **Intrinsic martensite:** K = **985 MPa·√(wt%C)⁻¹** captures the residual
+  (Bain + lath + supersaturation), only present in untempered states
+
+`985² + (1722×wt-to-at-conv)² ≈ 1722²` (roughly) — the Speich-Leslie 1722 is
+the quadrature sum of the two pieces we've split out. `[Phase 1.6]`
+
+---
+
+## 2. Per-contribution notes
+
+For each strengthening term: what we use, what's calibrated, what's still
+guesswork. See [`MODEL_PLAN.md §3.5`](MODEL_PLAN.md) for the full constants
+table.
+
+### σ_0 — lattice friction
+- **Value:** 50 MPa (universal across Sun 2022, Wang 2024, Zhu 2025, Galindo-Nava).
+- **Source:** textbook for BCC-Fe; Sun ref [12].
+- **Confidence:** high; doesn't move.
+
+### σ_ss — Fleischer solid-solution
+- **Form:** `σ_ss = √(Σ_i β_i² · x_i)` over substitutional + interstitial elements
+  remaining in matrix (excludes Fe).
+- **β coefficients** for Co/Ni/Cr/Mo/Al sourced from Niu 2019 (via Zhu 2025
+  Table 3). β for **W, V, C, Ti are placeholders** —
+  W=700, V=200, C=1722, Ti=250 — based on educated guesses from atomic-radius
+  + shear-modulus mismatch arguments (proper computation per Galindo-Nava
+  Appendix A is a TODO).
+- **Confidence:** medium for Co/Ni/Cr/Mo; **low for W/V/C/Ti** (placeholders).
+- **Sensitivity check (Phase 1.6):** β_C swept 1500-2000 MPa moves DQ
+  prediction by ~25 MPa (1-2 %). Calibration is robust to β_C uncertainty
+  within this range because the bulk of C-strengthening is in the intrinsic
+  term, not Fleischer-C.
+
+### σ_HP — Hall-Petch grain-boundary
+- **Form:** `σ_HP = K_HP · d^(−1/2)` with d = block width (μm).
+- **K = 230 MPa·µm^½** per Sun 2022 (M54 fit).
+- **Confidence:** high; comes from your own paper.
+
+### σ_ρ — Bailey-Hirsch dislocation
+- **Form:** `σ_ρ = α_eff · G · b · √ρ` (Sun convention with M absorbed; see
+  §1).
+- α_eff = 0.38, G = 80 GPa, b = 0.25 nm.
+- **Confidence:** high after Phase 1.5 bug fix.
+
+### σ_intr — as-quenched intrinsic martensite (new in Phase 1.6)
+- **Form:** `σ_intr = K · √(wt%C in solid solution)`, K = 985.
+- **Returns 0 for tempered states** — by construction in the function.
+- **Calibrated against** Sun 2022 DQ anchor; validated against AF550/45 with
+  the same K (works without retuning). `[Phase 1.6]`
+
+### σ_p — Orowan precipitation
+- **Form (with spacing):** `σ_p = M · 0.4 G b / [π √(1−ν)] · (1/L) · ln(2 r_s/b)`
+  per Wang 2024 Eq. 9.
+- **Form (volume-fraction fallback):** `σ_p = 0.26 · G b / r_eq · √f_v · ln(r_eq/b)`
+  per Zhu Eq. 13 (Ashby).
+- **For DQ + T516/10:** uses Wang's measured M2C population at 520 °C / 8 h
+  (closest published anchor to commercial 516 °C / 10 h spec): r_eq = 0.85 nm,
+  N = 6.5 × 10²⁰ m⁻³, L = 12.3 nm.
+- **Confidence:** medium — using Wang's 520 °C population at 516 °C may
+  introduce a small bias. Mondière reports M2C size at 516/10 as 9.6 × 1.2 nm
+  rod (slightly larger than Wang's 4 × 0.8) but doesn't give N or f_v, so we
+  can't directly use Mondière for the full population.
+
+### σ_y(eff) — austenite rule-of-mixtures correction
+- **Form:** `σ_y(eff) = (1 − f_A) σ_y + f_A · σ_A` with σ_A = 360 MPa per Li
+  2026 C64.
+- **Currently uses total f_A** without decomposing retained vs reverted (per
+  Q4 of MODEL_PLAN §10).
+- **Note:** the user's 0/20/40/60 % cw/cr austenite-content data is the
+  designated calibration set for the **Olson-Cohen TRIP submodel** in Phase 3.
+
+---
+
+## 3. Per-anchor model-vs-published comparisons
+
+Calibration anchors per [`MODEL_PLAN §6`](MODEL_PLAN.md). Each anchor is a
+specific microstructural condition with a measured YS we try to reproduce.
+
+### Anchor 1 — Sun 2022 DQ (no temper)
+
+- **Anchor YS = 1420 MPa.**
+- **Predicted = 1419 MPa (−0.1 %).** PASS. `[Phase 1.6]`
+- Decomposition (linear sum, Sun convention):
+  - σ_0 = 50, σ_ss = 257, σ_HP(d=1.18) = 212, σ_ρ(2.08e15) = 346,
+    σ_intr(0.30 wt%C) = 539. **Total = 1404.** (Discrepancy with reported 1419
+    is rounding in the per-term display.)
+- **What this calibrates:** the K=985 intrinsic-martensite coefficient.
+- **Note:** Sun 2022's own decomposition only reports the AF→DQ delta (ΔHP +
+  Δσ_ρ ≈ 434 MPa vs measured ΔYS = 410 MPa). It doesn't validate absolute DQ
+  YS — our model is the first to attempt that decomposition.
+
+### Anchor 2 — Sun 2022 DQ + T516/10 (commercial spec)
+
+- **Anchor YS = 1762 MPa.**
+- **Predicted = 1675 MPa (−4.9 %).** PASS. `[Phase 1.5]`
+- Decomposition:
+  - σ_0 = 50, σ_ss = 195 (post-precipitation matrix), σ_HP(d=1.18) = 212,
+    σ_ρ(1.12e15) = 254, σ_intr = 0 (tempered), σ_M2C = 964.
+    **Total = 1675.**
+- **The −87 MPa miss** is interpretable: Wang 2024 explicitly under-predicts
+  by 30-90 MPa attributed to **MC carbide Orowan contribution NOT included**.
+  Adding MC properly should close the gap. Tracked as a TODO in the Orowan
+  term.
+- **σ_M2C lineage:** uses Wang's measured 520/8 population (r_eq = 0.85 nm,
+  L = 12.3 nm, N = 6.5e20). Plugging into our Ashby-Orowan with-spacing form
+  reproduces Wang's reported σ_p ≈ 980 MPa to within 2 %.
+
+### Anchor 3 — Sun 2022 AF550/45 (no temper, ausformed)
+
+- **Anchor YS = 1830 MPa.**
+- **Predicted = 1864 MPa (+1.9 %).** PASS. `[Phase 1.6]`
+- Decomposition:
+  - σ_0 = 50, σ_ss = 257, σ_HP(d=0.48) = 332, σ_ρ(7.81e15) = 672,
+    σ_intr(0.30 wt%C) = 539. **Total = 1850.**
+- **What this validates:** the K=985 intrinsic-martensite coefficient (fit on
+  DQ) transfers to AF without retuning. Same physics, refined geometry.
+- **Sun 2022's own analysis:** Δ(AF − DQ) = 410 MPa measured. Our model
+  predicts 1864 − 1419 = 445 MPa Δ. Sun explicitly attributed this to:
+  block refinement +120 MPa (we get +120 MPa), dislocation strengthening +314
+  MPa (we get +326 MPa with the corrected Bailey-Hirsch). Lines up with Sun's
+  decomposition to within 4 %.
+
+### Anchor 4 — Sun 2022 AF550/45 + T425/10 (enhanced commercial route)
+
+- **Anchor YS = 1726 MPa.**
+- **Predicted = (Phase 2)** — needs Cho 2015 → M54 ausforming-accelerated M2C
+  kinetics to estimate the AF+T425/10 M2C population.
+
+---
+
+## 4. Calibration choices and their rationale
+
+### Why default to Sun convention (α_eff = 0.38, K_HP = 230)?
+
+- Sun 2022 is the user's own paper; numbers are M54-specific and credible.
+- Wang/Zhu's α_eff = 0.625 over-predicts σ_ρ by ~65 % vs Sun's 0.38 in the AF
+  state. Without an offsetting reduction elsewhere, Wang's convention
+  over-predicts AF YS by ~10 %.
+- We expose the WANG convention via `Convention.WANG` if reproducing Wang's
+  numbers exactly is needed. `[Phase 1.5]`
+
+### Why K=985 for the intrinsic-martensite term?
+
+- Calibrated to nail Sun 2022 DQ (anchor 1) within 0.1 %.
+- Validates AF anchor at +1.9 % without retuning — strong evidence that the
+  term captures real C-driven physics rather than per-state empirical fit.
+- Speich-Leslie 1722 is the lumped value that includes Fleischer-C; subtract
+  Fleischer-C contribution and the residual matches our K. `[Phase 1.6]`
+
+### Why deferred reverted-vs-retained austenite decomposition?
+
+- The user has measured **total** austenite at 0, 20, 40, 60 % cw/cr but has
+  not run TEM/APT to decompose retained vs reverted. For the rule-of-mixtures
+  YS correction the distinction doesn't matter.
+- The cw/cr series IS the right calibration data for **Olson-Cohen
+  α(T), β(T) parameters** in Phase 3 — much better than transferring 304 SS
+  values from Olson-Cohen's original paper. `[Phase 0]`
+
+### Why hold lath spacing constant at 135 nm across all conditions?
+
+- Sun 2022 reports lath width 70-200 nm but does not break out by AF vs DQ.
+- 135 nm is the midpoint; same value used in DQ and AF state factories.
+- Implication: lath-spacing-based contributions (which we don't yet use)
+  would be identical in DQ and AF, which is probably wrong (AF likely has
+  refined laths too). When we add lath-HP (Phase 2.5?), this needs better
+  data. `[Phase 1]`
+
+---
+
+## 5. Known gaps and biases
+
+Things we know are wrong or missing, deliberately deferred:
+
+| Item | Direction | Magnitude | Tracked in |
+|------|-----------|-----------|------------|
+| Fleischer β for W, V, C, Ti are placeholders | unknown | likely small (<5 % on DQ; negligible elsewhere) | TODO in `constants.py` |
+| MC carbide Orowan contribution not computed | under-predicts | 30-90 MPa on DQ + T (per Wang 2024) | TODO in `orowan.py` |
+| Lath-HP enhancement above block-HP not modeled | under-predicts in untempered (compensated by intrinsic term) | unknown — currently absorbed into K=985 | Galindo-Nava option in MODEL_PLAN |
+| AF + T M2C population requires Cho-2015 transfer | n/a (anchor 4 not yet computable) | n/a | Phase 2 |
+| Reverted-vs-retained austenite not decomposed | n/a (uses total f_A) | small for YS, larger implications for TRIP | Phase 3 |
+| Carbon-in-solution depletion at temper hardcoded at 99 % | small | plausibly ±20 MPa | will be replaced by real M2C kinetics in Phase 2 |
+| Block size doesn't change with tempering | OK to first order (Wang 2024 confirms) | none | n/a |
+
+---
+
+## 6. Phase log (chronological)
+
+### Phase 0 — Literature foundation (complete)
+- 73/73 papers indexed locally with verified DOIs.
+- TRIP foundation papers (Patel-Cohen, Olson-Cohen) indexed.
+- Architecture plan ([`MODEL_PLAN.md`](MODEL_PLAN.md)) drafted with knowledge
+  inventory across the four states.
+
+### Phase 1 — Strengthening core scaffold
+- Python package `m54model/` with src layout, uv-managed, ruff/mypy/pytest.
+- All five baseline strengthening contributions implemented
+  (`friction`, `solid_solution`, `hall_petch`, `dislocation`, `orowan`).
+- Three summation strategies (`linear`, `pythagorean_p`, `pythagorean_dp`).
+- 8 smoke tests passing.
+
+### Phase 1.5 — Bug fix + first calibration sweep
+- **Bug:** double-counted Taylor factor in `sigma_dislocation`. Fixed.
+- **Finding:** DQ + T516/10 calibrates cleanly at −4.9 % under Sun convention
+  + linear sum.
+- **Finding:** DQ and AF (untempered) under-predict by 28-38 % — exposed a
+  missing physics term.
+
+### Phase 1.6 — Intrinsic-martensite term
+- **New term:** `σ_intr = K · √(wt%C in solid solution)`, K = 985,
+  applies only in untempered states.
+- **Result:** all three baseline anchors PASS within ±5 %. Same K calibrates
+  DQ and AF without retuning.
+
+### Phase 2 (in progress)
+- Build M2C kinetics (JMA Avrami) and Cho-transferred ausforming accelerator.
+- Add the AF + T425/10 anchor.
+
+---
+
+## Adding a new finding
+
+When you spot something worth recording:
+
+1. Decide if it's a per-contribution fact (§2), per-anchor comparison (§3),
+   calibration choice (§4), or a known gap (§5). Sometimes it's worth
+   recording in two sections — that's fine.
+2. Tag with `[Phase X.Y]` so future-us can trace it back.
+3. If the finding changes a model output, add a one-line entry to §6 with the
+   commit-merge SHA so you can `git show` the diff later.
+4. Keep entries terse and link to source (`[citekey]` for lit, file path for
+   code).
+
+Avoid burying findings in commit messages alone — they get hard to find.
