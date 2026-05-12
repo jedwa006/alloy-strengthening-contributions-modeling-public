@@ -4,7 +4,32 @@ Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-
 
 ## Status
 
-Phase 0 — literature foundation complete (73/73 papers locally indexed). Phase 1 — strengthening core — in planning. See [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) for the full architecture and phasing plan.
+Phase 2 complete — all four Sun 2022 calibration anchors PASS within ±5 %:
+
+| Anchor | Predicted | Measured | Miss |
+|--------|----------:|---------:|-----:|
+| DQ                  | 1419 | 1420 | -0.1 % |
+| DQ + T516/10        | 1675 | 1762 | -4.9 % |
+| AF550/45            | 1864 | 1830 | +1.9 % |
+| AF550/45 + T425/10  | 1748 | 1726 | +1.3 % |
+
+See [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) for the full architecture and
+[`docs/FINDINGS.md`](docs/FINDINGS.md) for the running insights log.
+
+## Quickstart
+
+```bash
+uv sync --extra dev               # one-time: install Python 3.12, deps, jupyter
+uv run pytest                     # run all tests
+uv run python scripts/calibrate.py   # CLI calibration sweep
+uv run jupyter lab notebooks/     # launch the walkthrough notebook
+```
+
+The interactive walkthrough is at [`notebooks/01_introduction.ipynb`](notebooks/01_introduction.ipynb)
+— covers the API, contribution decompositions, tempering parameter sweeps,
+and the AF-vs-DQ direction-of-effect bias. The notebook is built from
+[`scripts/build_walkthrough_notebook.py`](scripts/build_walkthrough_notebook.py); re-generate
+with `uv run python scripts/build_walkthrough_notebook.py`.
 
 ## Layout
 
@@ -24,10 +49,12 @@ reference docs/                User-supplied source PDFs
 └── Articles that CITE main article/   The 5 cited-by papers
 pdf-archive/                   PDFs gathered for the bibliography (~390 MB)
 └── MANIFEST.md                Per-PDF provenance
-m54model/                      [Phase 1+] Python package — TBD
-notebooks/                     [Phase 1+] Jupyter walkthroughs — TBD
-scripts/                       [Phase 1+] Reproducibility runners — TBD
-tests/                         [Phase 1+] Unit + integration tests — TBD
+src/m54model/                  Python package — alloy/state/precipitate
+                                dataclasses, kinetics, strengthening,
+                                calibration anchors, plotting helpers
+notebooks/                     Jupyter walkthroughs (interactive)
+scripts/                       Reproducibility runners + notebook builders
+tests/                         Unit + integration tests (pytest)
 ```
 
 ## Working with this repo
