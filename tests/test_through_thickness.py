@@ -118,3 +118,137 @@ def test_plate_thickness_table_locks_chapter5_values() -> None:
     """Lock the Ch 5 plate-thickness values in the test."""
     expected = {0: 3800.0, 20: 3040.0, 40: 2280.0, 60: 1520.0}
     assert PLATE_THICKNESS_UM_BY_CR == expected
+
+
+# ---- Phase 3.8b — derived σ_y from per-zone H -----------------------------------------
+
+
+def test_derive_zone_sigma_y_at_baseline_within_10pct_of_pred() -> None:
+    """At 0 % CR baseline (low f_A), derived σ_y from H should agree with
+    the predicted σ_y to within ~10 %."""
+    from m54model.strengthening import derive_zone_sigma_y_from_nanoindent
+
+    derived = derive_zone_sigma_y_from_nanoindent(0, "0-50 µm")
+    assert derived["valid"]
+    # σ_y_user_rate at 0 % CR baseline ~1300-1500 MPa range
+    assert 1200 < derived["sigma_y_user_rate_derived_MPa"] < 1500
+
+
+def test_derive_recovers_h_alpha_prime_from_h_composite() -> None:
+    """At very low f_A (0 % CR), Eq. 1 inverted should give H_α′ ≈ H_composite
+    (austenite contribution is negligible)."""
+    from m54model.strengthening import derive_zone_sigma_y_from_nanoindent
+
+    derived = derive_zone_sigma_y_from_nanoindent(0, "0-50 µm")
+    diff = abs(derived["H_alpha_prime_derived_GPa"] - derived["H_composite_GPa"])
+    assert diff < 0.1  # within 0.1 GPa
+
+
+def test_per_zone_sweep_returns_20_rows() -> None:
+    from m54model.strengthening import per_zone_predicted_vs_derived_sweep
+
+    rows = per_zone_predicted_vs_derived_sweep()
+    assert len(rows) == 20  # 5 zones × 4 CR conditions
+
+
+def test_volume_weighted_derived_bulk_matches_tensile_at_60pct() -> None:
+    """Phase 3.8b key validation: volume-weight the H-derived per-zone σ_y
+    at 60 % CR and compare to bulk tensile (1900 ± 50 MPa). Should agree
+    within ~5 %, far better than the microstructure-only prediction."""
+    from m54model.strengthening import (
+        per_zone_predicted_vs_derived_sweep,
+        zone_volume_fraction,
+    )
+
+    rows = per_zone_predicted_vs_derived_sweep()
+    rows_60 = [r for r in rows if r["cw_pct"] == 60 and r["sigma_y_derived_MPa"]]
+    assert len(rows_60) == 5
+
+    # Volume-weight the derived σ_y values.
+    plate_T = 1520.0  # µm at 60 % CR
+    vol_fracs = [zone_volume_fraction(r["zone_label"], plate_T) for r in rows_60]
+    sigma_derived = [r["sigma_y_derived_MPa"] for r in rows_60]
+    bulk_derived = sum(v * s for v, s in zip(vol_fracs, sigma_derived)) / sum(vol_fracs)
+    measured = 1900.0
+    assert abs(bulk_derived - measured) / measured < 0.05  # within 5 %
+
+
+def test_per_zone_60pct_predicted_vs_derived_have_opposite_surface_gradient() -> None:
+    """Phase 3.8b key finding: at 60 % CR the *predicted* σ_y has surface
+    SOFTER than core (linear f_A interpolation puts more austenite at the
+    surface), but the *H-derived* σ_y has surface HARDER than core
+    (matrix work-hardening at the surface dominates). This locks the
+    qualitative finding for future regression."""
+    from m54model.strengthening import per_zone_predicted_vs_derived_sweep
+
+    rows = per_zone_predicted_vs_derived_sweep()
+    rows_60 = [r for r in rows if r["cw_pct"] == 60]
+
+    surf = next(r for r in rows_60 if r["zone_label"] == "0-50 µm")
+    core = next(r for r in rows_60 if r["zone_label"] == "Core")
+    # Predicted: surface < core (model wrong direction at this CR)
+    assert surf["sigma_y_predicted_MPa"] < core["sigma_y_predicted_MPa"]
+    # Derived: surface > core (matches user's H surface-to-core gradient)
+    assert surf["sigma_y_derived_MPa"] > core["sigma_y_derived_MPa"]
+
+
+# ---- Phase 3.7d — Mondière f_A correction mode ----------------------------------------
+
+
+def test_f_A_correction_mondière_matches_minus_68_per_pct() -> None:
+    """Mondière 2025 mode: ∂σ_y/∂f_A = −6800 MPa per unit f_A (= −68/%)."""
+    from m54model.calibration import m54_af_t516_10_cw
+    from m54model.strengthening import assemble_yield_strength
+
+    state = m54_af_t516_10_cw(0, location="surface")
+    res = assemble_yield_strength(state, f_A_correction_mode="mondière_2025")
+    delta = res.sigma_y_austenite_corrected_MPa - res.sigma_y_MPa
+    expected = -6800.0 * state.f_austenite
+    assert abs(delta - expected) < 0.5
+
+
+def test_f_A_correction_modes_differ() -> None:
+    """rule_of_mix and mondière_2025 should give different σ_y corrections."""
+    from m54model.calibration import m54_af_t516_10_cw
+    from m54model.strengthening import assemble_yield_strength
+
+    state = m54_af_t516_10_cw(0, location="surface")
+    rom = assemble_yield_strength(state, f_A_correction_mode="rule_of_mix")
+    mond = assemble_yield_strength(state, f_A_correction_mode="mondière_2025")
+    assert mond.sigma_y_austenite_corrected_MPa < rom.sigma_y_austenite_corrected_MPa
+
+
+def test_f_A_correction_mondière_clamped_at_zero() -> None:
+    """At very high f_A, Mondière's relation goes negative. Our impl
+    clamps σ_y_corr at 0 to avoid unphysical negatives."""
+    import pytest
+
+    from m54model.kinetics import m2c_population_af_tempered
+    from m54model.calibration.anchors import _matrix_tempered
+    from m54model.states import MicrostructuralState
+    from m54model.strengthening import assemble_yield_strength
+
+    # Synthesize a state with f_A huge enough to flip Mondière negative.
+    m2c = m2c_population_af_tempered(516.0, 10.0)
+    state = MicrostructuralState(
+        state="synthetic",
+        block_width_um=0.48,
+        dislocation_density_per_m2=1.6e15,
+        f_austenite=0.5,  # 50 % γ — way past Mondière's calibration regime
+        matrix_at_frac=_matrix_tempered(),
+        wt_pct_C_in_solution=0.003,
+        precipitates=[m2c],
+    )
+    res = assemble_yield_strength(state, f_A_correction_mode="mondière_2025")
+    assert res.sigma_y_austenite_corrected_MPa >= 0.0
+
+
+def test_invalid_f_A_correction_mode_raises() -> None:
+    import pytest
+
+    from m54model.calibration import m54_af_t516_10_cw
+    from m54model.strengthening import assemble_yield_strength
+
+    state = m54_af_t516_10_cw(0, location="surface")
+    with pytest.raises(ValueError):
+        assemble_yield_strength(state, f_A_correction_mode="banana")

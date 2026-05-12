@@ -272,6 +272,149 @@ def predict_bulk_sigma_y_through_thickness(
     return {"bulk_sigma_y_MPa": round(bulk, 1), "zones": zone_preds}
 
 
+def derive_zone_sigma_y_from_nanoindent(
+    cw_pct: int,
+    zone_label: str,
+    *,
+    H_gamma_GPa: float = 4.0,
+    tabor_C_uts: float = 3.24,
+    work_hardening_ratio: float | None = None,
+    apply_strain_rate_correction: bool = True,
+) -> dict[str, float]:
+    """Phase 3.8b — invert measured per-zone H_composite to derive an
+    equivalent measured σ_y at that zone.
+
+    Pipeline:
+      1. Measured H_composite from `USER_M54_NANOINDENTATION` for this
+         (CR, zone).
+      2. Interpolated f_A at this zone (same scheme as Phase 3.8a).
+      3. Eq. 1 (Ch 5) inverted: H_α′ = (H_composite − f_A · H_γ) / (1 − f_A).
+      4. Tabor: σ_UTS_α′ = H_α′ · 1000 / tabor_C_uts.
+      5. σ_y_α′ = σ_UTS_α′ / work_hardening_ratio.
+      6. Optionally rate-correct via the standard +5.4 % bump.
+
+    Returns a dict with the inputs + intermediate + derived σ_y so each
+    step is auditable. This is "what σ_y would the H + f_A + Tabor +
+    WH-ratio chain say at this zone if we trust the measurements?"
+
+    Together with `predict_zone_sigma_y` (which predicts σ_y from
+    microstructure inputs ALONE), this gives a per-zone measurement-
+    derived anchor — turning the user's 5-zone × 4-CR nanoindent grid
+    into 20 σ_y comparison points instead of just 4 bulk tensile points.
+    """
+    from m54model.calibration import nanoindent_for_cr
+    from m54model.calibration.strain_rate import (
+        EPS_DOT_SUN_2022_S_INV,
+        EPS_DOT_USER_TENSILE_S_INV,
+        strain_rate_correction,
+    )
+    from m54model.strengthening.derived_properties import (
+        EMPIRICAL_WORK_HARDENING_RATIO_BY_CR,
+        phase_corrected_alpha_prime_hardness_GPa,
+    )
+
+    if work_hardening_ratio is None:
+        work_hardening_ratio = EMPIRICAL_WORK_HARDENING_RATIO_BY_CR.get(cw_pct, 1.5)
+
+    zones = nanoindent_for_cr(cw_pct)
+    zone = next(z for z in zones if z.zone_label == zone_label)
+    H_composite_GPa = zone.H_GPa
+
+    micro = microstructure_at_zone(cw_pct, zone_label)
+    f_A = micro["f_A"]
+
+    H_alpha_prime = phase_corrected_alpha_prime_hardness_GPa(
+        H_composite_GPa, f_A, H_gamma_GPa=H_gamma_GPa
+    )
+    if H_alpha_prime <= 0:
+        # Eq. 1 numerically degenerate at very high f_A (Phase 3.7a guard);
+        # signal to consumers that this point is unusable.
+        return {
+            "cw_pct": float(cw_pct),
+            "zone_label": zone_label,
+            "H_composite_GPa": H_composite_GPa,
+            "f_A_interpolated": f_A,
+            "H_alpha_prime_derived_GPa": 0.0,
+            "sigma_uts_alpha_prime_derived_MPa": 0.0,
+            "sigma_y_alpha_prime_derived_MPa": 0.0,
+            "sigma_y_user_rate_derived_MPa": 0.0,
+            "work_hardening_ratio_assumed": work_hardening_ratio,
+            "valid": False,
+        }
+
+    sigma_uts_alpha = H_alpha_prime * 1000.0 / tabor_C_uts
+    sigma_y_alpha = sigma_uts_alpha / work_hardening_ratio
+    factor = (
+        strain_rate_correction(
+            EPS_DOT_USER_TENSILE_S_INV, EPS_DOT_SUN_2022_S_INV, m=0.01
+        )
+        if apply_strain_rate_correction
+        else 1.0
+    )
+    return {
+        "cw_pct": float(cw_pct),
+        "zone_label": zone_label,
+        "H_composite_GPa": H_composite_GPa,
+        "f_A_interpolated": f_A,
+        "H_alpha_prime_derived_GPa": H_alpha_prime,
+        "sigma_uts_alpha_prime_derived_MPa": sigma_uts_alpha,
+        "sigma_y_alpha_prime_derived_MPa": sigma_y_alpha,
+        "sigma_y_user_rate_derived_MPa": sigma_y_alpha * factor,
+        "work_hardening_ratio_assumed": work_hardening_ratio,
+        "valid": True,
+    }
+
+
+def per_zone_predicted_vs_derived_sweep(
+    cw_pcts: tuple[int, ...] = (0, 20, 40, 60),
+    *,
+    subblock_hp_K_MPa_um_half: float = 150.0,
+    H_gamma_GPa: float = 4.0,
+) -> list[dict[str, float | str | None]]:
+    """20-row table (5 zones × 4 CR) comparing per-zone *predicted* σ_y
+    (from microstructure inputs alone, Phase 3.8a) against per-zone
+    *derived* σ_y (from H_composite + f_A + Tabor + WH ratio, Phase 3.8b).
+
+    Per-zone agreement validates the linear-interpolation + Tabor
+    framework; per-zone disagreement highlights where the microstructure-
+    only prediction misses a real per-zone effect (e.g., surface matrix
+    work-hardening that f_A interpolation can't capture)."""
+    rows: list[dict[str, float | str | None]] = []
+    for cw in cw_pcts:
+        for zone in ZONE_LABELS:
+            pred = predict_zone_sigma_y(
+                cw, zone, subblock_hp_K_MPa_um_half=subblock_hp_K_MPa_um_half
+            )
+            derived = derive_zone_sigma_y_from_nanoindent(
+                cw, zone, H_gamma_GPa=H_gamma_GPa
+            )
+            sigma_pred = pred.sigma_y_user_rate_MPa
+            sigma_derived = derived["sigma_y_user_rate_derived_MPa"]
+            if not derived["valid"] or sigma_derived <= 0:
+                miss = None
+            else:
+                miss = (sigma_pred - sigma_derived) / sigma_derived * 100
+            rows.append(
+                {
+                    "cw_pct": cw,
+                    "zone_label": zone,
+                    "depth_um": pred.depth_um,
+                    "f_A_interpolated": pred.f_A,
+                    "H_composite_meas_GPa": derived["H_composite_GPa"],
+                    "H_alpha_prime_derived_GPa": (
+                        round(derived["H_alpha_prime_derived_GPa"], 2)
+                        if derived["valid"] else None
+                    ),
+                    "sigma_y_predicted_MPa": round(sigma_pred, 1),
+                    "sigma_y_derived_MPa": (
+                        round(sigma_derived, 1) if derived["valid"] else None
+                    ),
+                    "miss_pct": round(miss, 1) if miss is not None else None,
+                }
+            )
+    return rows
+
+
 def through_thickness_sweep(
     cw_pcts: tuple[int, ...] = (0, 20, 40, 60),
     *,
