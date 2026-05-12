@@ -113,25 +113,62 @@ USER_M54_TENSILE: list[TensilePoint] = [
 
 @dataclass(frozen=True)
 class ToughnessPoint:
-    """One toughness measurement. Units assumed MPa·m^½ pending user
-    confirmation that the slide's 'MPa/m²' label is a notation typo."""
+    """One tensile-toughness measurement.
+
+    **Definition (per user, 2026-05-12)**: area under the engineering
+    stress-strain curve from instrumented tensile to fracture. Units
+    are MJ/m³ (energy density). NOT to be confused with K<sub>IC</sub>
+    fracture toughness (MPa·m^½), which is a separate plane-strain
+    quantity — see Mondière 2018's K<sub>IC</sub> = 110 MPa·m^½ literature
+    anchor in the toughening module.
+
+    The user's slide originally labeled units as "MPa/m²" — that label
+    was a notation typo. Numerically MJ/m³ ≡ MPa (energy/vol = stress
+    × strain), so the values are correct, only the unit string was wrong.
+
+    The Chapter 5 draft §"Toughness" text reports DIFFERENT values
+    (242-270 / 127-136 / 101-180 MJ/m³ for 0/47/60 % CR) with a
+    DECREASING trend — claims it tracks "uniform elongation collapse",
+    but Table 3 in the same paper shows TOTAL elongation 11→15→13→20 %
+    rising, so the §Text values appear to be measuring area-to-uniform
+    rather than area-to-fracture. The values stored here are the
+    instrumented-tensile-to-fracture metric (matching slide + Fig 3b).
+    """
 
     cw_pct: float
     label: str
-    K_IC_MPa_m_half: float
-    K_IC_std_MPa_m_half: float
-    method: str = "SENB or CT (TBD)"
+    tensile_toughness_MJ_per_m3: float
+    tensile_toughness_std_MJ_per_m3: float
+    method: str = "instrumented tensile, area to fracture"
     notes: str = ""
 
 
-# Toughness chart (user's "Mechanical Properties" slide).
+# Toughness chart (user's "Mechanical Properties" slide; Chapter 5 Fig 3b
+# shows the same trend in the green-bar overlay).
 USER_M54_TOUGHNESS: list[ToughnessPoint] = [
-    ToughnessPoint(0.0, "AF + T516/10 baseline", 219.0, 13.0,
-                   notes="2× higher than Mondière 2018's commercial DQ+T516/10 K_IC = 110."),
+    ToughnessPoint(
+        0.0,
+        "AF + T516/10 baseline",
+        219.0,
+        13.0,
+        notes=(
+            "Tensile toughness — NOT K_IC. Mondière 2018's K_IC = 110 MPa·m^½ "
+            "is a separate fracture-toughness anchor, kept in the toughening module."
+        ),
+    ),
     ToughnessPoint(47.0, "AF + T516/10 + 47% CR", 322.0, 9.0),
     ToughnessPoint(53.0, "AF + T516/10 + 53% CR", 280.0, 12.0),
-    ToughnessPoint(60.0, "AF + T516/10 + 60% CR", 434.0, 23.0,
-                   notes="K_IC DOUBLES with 60 % CR — challenges the CW-embrittles narrative."),
+    ToughnessPoint(
+        60.0,
+        "AF + T516/10 + 60% CR",
+        434.0,
+        23.0,
+        notes=(
+            "Tensile toughness DOUBLES from 0 % to 60 % CR — the unusual "
+            "triple-positive (σ_y↑ + UTS↑ + EL↑(total) + tensile-toughness↑) "
+            "with cold work in the AF+T M54 system."
+        ),
+    ),
 ]
 
 

@@ -820,12 +820,22 @@ the ±5 % anchor pass band. Two natural candidates:
 
 **Other observations from the data:**
 
-- **Toughness DOUBLES with 60 % CR** (219 → 434 MPa·m<sup>½</sup>). Counter to the
-  CW-embrittles narrative; aligns with Sun 2022's finding that
+- **Tensile toughness DOUBLES with 60 % CR** (219 → 434 MJ/m³;
+  area-under-engineering-stress-strain-to-fracture, NOT K<sub>IC</sub>).
+  This is the user-confirmed metric (instrumented tensile, integrated
+  to fracture). Slide originally labeled units as "MPa/m²" — typo for
+  MJ/m³ (numerically equivalent: stress × dimensionless strain). Counter
+  to the CW-embrittles narrative; aligns with Sun 2022's finding that
   ausforming + temper improves toughness over DQ + temper despite higher
-  σ<sub>y</sub>. The model's Phase 3.6a spatial K<sub>IC</sub> predicts ΔK<sub>TRIP</sub> ≪ 1 MPa·m<sup>½</sup>
-  from M54 reverted-γ levels — so the toughness rise is matrix-driven
-  (refined block, dislocation-accommodated cracking), not TRIP-driven.
+  σ<sub>y</sub>. **Note**: this is tensile toughness (energy density),
+  separate from fracture K<sub>IC</sub>. Mondière 2018's K<sub>IC</sub>
+  = 110 MPa·m<sup>½</sup> remains a separate fracture-toughness anchor
+  in the toughening module — the +TRIP < 0.3 MPa·m<sup>½</sup> bound
+  applies to that K<sub>IC</sub>, not to the tensile toughness here.
+  *Caveat*: Chapter 5 §"Toughness" text reports DECREASING values
+  (242-270 → 127-136 → 101-180 MJ/m³) — this appears to measure
+  area-to-uniform rather than area-to-fracture; values stored in
+  `USER_M54_TOUGHNESS` are the area-to-fracture metric.
 - **60 % CR has BOTH highest σ<sub>y</sub> AND highest EL (20 %)** — opposite of
   classical CW. Likely consequence of (a) the surface-localized hardness
   gradient (8.0 → 7.2 GPa surface-to-core) creating a strain-hardening-

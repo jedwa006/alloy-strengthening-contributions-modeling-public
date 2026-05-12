@@ -28,10 +28,12 @@ def test_tensile_60pct_is_strongest_and_most_ductile() -> None:
     assert p_60.elongation_pct == max(p.elongation_pct for p in USER_M54_TENSILE)
 
 
-def test_toughness_increases_4x_to_2x_over_baseline() -> None:
+def test_tensile_toughness_doubles_from_baseline_to_60pct_cr() -> None:
+    """Tensile toughness (area-under-curve, MJ/m³) doubles 219 → 434
+    from 0 % to 60 % CR. Headline finding for the cw/cr study."""
     base = toughness_for_cr(0)
     high = toughness_for_cr(60)
-    assert high.K_IC_MPa_m_half / base.K_IC_MPa_m_half > 1.5  # actually ≈ 2.0
+    assert high.tensile_toughness_MJ_per_m3 / base.tensile_toughness_MJ_per_m3 > 1.5  # ~2.0
 
 
 def test_nanoindent_five_zones_per_cr() -> None:
