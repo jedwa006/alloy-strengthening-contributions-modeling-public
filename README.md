@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.7d (Mondière mode) + Phase 3.8b (per-zone H inversion) landed. **3.7d**: alternative `f_A_correction_mode="mondière_2025"` adds Mondière's empirical YS = 1978 − 68·γ% as a knob; documented to over-correct at high f_A (815 MPa at 12.6 % core), so kept non-default. **3.8b**: 20-row predicted-vs-derived σ_y table from per-zone H inversion + Tabor + WH ratio. **Smoking-gun finding**: at 60 % CR the model predicts surface SOFTER than core (linear f_A interpolation), but H-derived data shows surface HARDER than core (matrix work-hardening dominates) — opposite gradients. Volume-weighted derived bulk = 1867 MPa within −1.7 % of measured 1900, **better than any microstructure-only prediction**. Suggests Phase 3.8c: use H-derived per-zone σ_y as anchors instead of microstructure interpolation. 160/160 tests pass.
+> **Last updated:** 2026-05-12 — Phase 3.8c lands: H-data-anchored bulk σ<sub>y</sub> via per-zone Eq. 1 inversion + volume weighting is now a first-class predictor (`predict_bulk_sigma_y_h_anchored`). Within ±2 % of measured tensile at both 0 % and 60 % CR, NO hand-fit knobs. Side-by-side `cw_cr_sigma_y_summary()` exposes all three approaches (3.7b empirical, 3.8a microstructure-only, 3.8c H-anchored) for direct comparison. New paper-ready 2-panel figure in `notebooks/02 §3c` + Suveen-facing progress report at `docs/CW_CR_PROGRESS_REPORT_2026_05_12.md`. 160/160 tests pass.
 
 ## Status
 
@@ -31,7 +31,7 @@ GitHub renders these directly in the browser — no clone, no install, no accoun
 - 🔄 **[`notebooks/02_trip_toughening.ipynb`](notebooks/02_trip_toughening.ipynb)** — TRIP submodel: Patel-Cohen 1953 (Fig. 1 reproduction) + Olson-Cohen 1975 (Angel 304 SS sigmoidal family) + the M54 ASTAR cw/cr austenite data with the non-monotonic finding visualized.
 - 💥 **[`notebooks/03_crack_tip_kic.ipynb`](notebooks/03_crack_tip_kic.ipynb)** — Crack-tip K<sub>IC</sub> integration via McMeeking-Evans 1982 transformation toughening. Predicts ΔK<sub>TRIP</sub> for each calibrated state, solves for the matrix-toughness needed to land at Mondière's K<sub>IC</sub> = 110 MPa·m<sup>½</sup>, and shows the f<sub>A</sub> sweep that bounds where TRIP becomes a primary toughening mechanism (~25 % austenite — much higher than M54's 1-3 %).
 
-For deeper reading, [`docs/FINDINGS.md`](docs/FINDINGS.md) is the running log of model insights, calibration choices, and known biases.
+For deeper reading, [`docs/FINDINGS.md`](docs/FINDINGS.md) is the running log of model insights, calibration choices, and known biases. For a current progress report on the cw/cr σ<sub>y</sub> modeling — three model approaches, H-anchored gives best bulk match within ±2 %, surface-matrix-hardening gradient discussion + open questions — see [`docs/CW_CR_PROGRESS_REPORT_2026_05_12.md`](docs/CW_CR_PROGRESS_REPORT_2026_05_12.md).
 
 ## Architecture compatibility
 
