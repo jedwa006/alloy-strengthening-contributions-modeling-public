@@ -21,6 +21,23 @@ Wang 2024 + Zhu 2025 framework, calibrated against four Sun anchors at
 GND density, grain size, nanoindentation H, XRD V<sub>γ</sub> + Bain
 ε<sup>V</sup>).
 
+**Mechanistic framing**: the M54 cw/cr regime sits in the
+"cumulatively-large but never instantaneously-large" strain space that
+Maresca-Kouznetsova-Geers 2014 [1] frames as the regime where interlath
+retained austenite films contribute meaningfully to deformability. Our
+65-pass skin-pass schedule (0.5-1 % per pass, total ~61 % reduction)
+realizes precisely this regime. The user's measured 60 % CR
+microstructure — uniformly distributed γ films at lath boundaries with
+~30 nm lath thickness (Ch 4 §"Phase distribution") — is the material
+the Maresca framework was built to describe. Maresca-Curtin 2017 [2]
+adds an atomistic + crystallographic theory of the fcc/bcc interface
+showing glissile, athermal motion under shear; Maresca-Kouznetsova-Geers
+-Curtin 2018 [3] extends this to a continuum model and explicitly
+documents the **forward FCC→BCC transformation as spontaneous while
+the reverse BCC→FCC requires high stress** — the asymmetry our Phase
+3.6h Patel-Cohen analysis already invoked, now with a published
+atomistic basis.
+
 **Validation surface**: 4 Sun published anchors + 4 cw/cr conditions
 (0/20/40/60 % CR) × multiple measured properties per condition
 (σ<sub>y</sub>, σ<sub>UTS</sub>, EL, hardness in 5 zones, reduced
@@ -183,7 +200,15 @@ Three options, in increasing scope:
    measurement.
 3. **Move to the K<sub>IC</sub> mechanism question** — the doubling-
    with-CW story has no model in the literature. Could be a paper
-   contribution if we can build a defensible mechanism.
+   contribution if we can build a defensible mechanism. The Maresca
+   framework [1-3] suggests the natural starting point: interlath γ
+   films contribute deformability (energy absorption) under
+   cumulatively-large strain in proportion to their boundary-network
+   connectivity (Ch 4 documents "boundary-following network at lath
+   interfaces (20-80 nm)" at 40 % CR; "elongated residual films" at
+   60 % CR). A `K_IC ∝ f_film · L_film_boundary_network` scaling could
+   plausibly be calibrated against the measured 219 → 434 MJ/m³
+   tensile-toughness rise.
 
 ---
 
@@ -208,3 +233,22 @@ for the lit-search underlying the modeling choices see
 
 For the running phase log of model insights (what changed, when, and
 why), see [`FINDINGS.md`](FINDINGS.md).
+
+---
+
+## References
+
+1. F. Maresca, V. G. Kouznetsova, M. G. D. Geers. "On the role of
+   interlath retained austenite in the deformation of lath martensite."
+   *Modell. Simul. Mater. Sci. Eng.* **22** (2014) 045011.
+   [doi:10.1088/0965-0393/22/4/045011](https://doi.org/10.1088/0965-0393/22/4/045011)
+2. F. Maresca, W. A. Curtin. "The austenite/lath martensite interface
+   in steels: Structure, athermal motion, and in-situ transformation
+   strain revealed by simulation and theory." *Acta Materialia*
+   **134** (2017) 302-323.
+   [doi:10.1016/j.actamat.2017.05.044](https://doi.org/10.1016/j.actamat.2017.05.044)
+3. F. Maresca, V. G. Kouznetsova, M. G. D. Geers, W. A. Curtin.
+   "Contribution of austenite-martensite transformation to deformability
+   of advanced high strength steels: From atomistic mechanisms to
+   microstructural response." *Acta Materialia* **156** (2018) 463-478.
+   [doi:10.1016/j.actamat.2018.06.028](https://doi.org/10.1016/j.actamat.2018.06.028)
