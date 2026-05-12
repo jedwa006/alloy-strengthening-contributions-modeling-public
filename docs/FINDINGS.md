@@ -1062,6 +1062,60 @@ of the 60 % gap.
 - 5 new tests (91 total pass)
 - Notebook 02 §3b SSD sensitivity sweep + plot
 
+### Phase 3.6f — Sub-block Hall-Petch term closes the 60 % CR gap `[Phase 3.6f]`
+
+The user's ASTAR shows core sub-block size refining 212 → 51 nm across
+0 → 60 % CR — far below the 0.48 µm block scale that the default
+σ<sub>HP</sub> uses (a Sun-calibrated empirical that already captures
+the AF + temper baseline structure). Adding a literal absolute sub-block
+HP term would over-predict at all CR levels (including 0 %, where the
+structure is already nano).
+
+**Cleaner approach: increment-relative-to-baseline:**
+
+  Δσ<sub>HP,sub</sub> = K<sub>sub</sub> · (d<sub>sub</sub><sup>−½</sup>
+  − d<sub>sub,baseline</sub><sup>−½</sup>)
+
+where d<sub>sub,baseline</sub> is the 0 % CR median grain size at the
+SAME location. This guarantees Δσ = 0 at 0 % CR by construction, and
+only adds the cw-induced refinement contribution.
+
+**Recommended K<sub>sub</sub> ≈ 150 MPa·µm<sup>½</sup>** closes the 60 %
+CR gap to <2 % without disturbing the 0 % baseline:
+
+| CR % | meas | k=1.0, K_sub=0 | k=1.0, K_sub=150 | Δσ<sub>HP,sub</sub> |
+|---:|---:|---:|---:|---:|
+| 0  | 1300 | 1420 (+9 %) | 1420 (+9 %)   | 0 MPa     |
+| 20 | (—)  | 1745         | 1993           | +248 MPa  |
+| 40 | (—)  | 1695         | 1957           | +262 MPa  |
+| 60 | 1900 | 1589 (−16 %) | **1923 (+1 %)** | +320 MPa |
+
+**Comparison with the SSD-multiplier knob (Phase 3.6e):** k<sub>SSD</sub>
+= 2.5 also closes 60 % but blows 0 % up to +23 %. K<sub>sub</sub> = 150
+closes 60 % AND leaves 0 % alone. **Sub-block HP is the right knob for
+cw-induced strengthening; SSD is the wrong knob (touches baseline too).**
+
+**Remaining +9 % baseline bias** at 0 % CR is unaffected by either knob.
+The candidates (Phase 3.6h+):
+- σ<sub>p</sub>(M2C) calibration — the post-tempering M2C population
+  factory may over-state V<sub>f</sub> for the cross-rolled-then-tempered
+  prior history.
+- Block size for cross-rolled state — multi-axial deformation followed
+  by temper may produce a coarser equivalent block than the 0.48 µm
+  Sun AF baseline.
+- Modified-Williamson-Hall on the user's existing XRD spectra to
+  measure ρ<sub>total</sub> directly, replacing the GND-only input.
+
+**Captured in:**
+- `m54_af_t516_10_cw(cw_pct, location, ssd_multiplier,
+  subblock_hp_K_MPa_um_half)` and `predict_cw_cr_sweep(...,
+  subblock_hp_K_MPa_um_half)`. Default K<sub>sub</sub> = 0 (disabled)
+  preserves Phase 3.6d/e behavior.
+- `_subblock_hp_increment_MPa(cw_pct, location, K_sub)` helper that
+  computes the increment using `USER_M54_GRAIN_SIZE` median.
+- 5 new tests (96 total pass).
+- Notebook 02 §3b sub-block-HP sensitivity sweep + plot.
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
