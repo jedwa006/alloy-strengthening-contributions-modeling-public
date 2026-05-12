@@ -1011,6 +1011,57 @@ gap analysis is itself the Phase 3.6d v1 deliverable.
 - 8 new tests in `tests/test_cw_cr_factory.py` (86 total pass)
 - Notebook 02 §3b: predicted-vs-measured plot with the gap visualized
 
+### Phase 3.6e — SSD multiplier on top of GND + lit-review on partitioning `[Phase 3.6e]`
+
+Lit-review of the GND/SSD partitioning question across our PDF archive
+(via Explore subagent) returned a clear answer: **no paper in our refs
+explicitly partitions ρ<sub>GND</sub> from ρ<sub>SSD</sub> in the
+strengthening equation.** Concrete findings:
+
+- **Galindo-Nava 2015** (`sun21_GalindoNava_2015_lath_martensite_model.pdf`)
+  derives ρ from carbon redistribution at lath boundaries (Eq. 5,
+  p. 86); treats ρ as bulk total. No GND/SSD split.
+- **Zhu 2025** (Eq. 9): σ<sub>ρ</sub> = αMGb√ρ with ρ from modified
+  Williamson-Hall (their ref [22], Borbely 2022). Total ρ.
+- **Wang 2024** (`zhu11_Wang_2024_dual_precip_aged.pdf`) is the closest:
+  reports ρ<sub>GND</sub> ≈ 2.3 × 10¹⁵ m⁻² for peak-aged steel via
+  EBSD-KAM, but **doesn't decompose strengthening** — uses total-ρ in
+  the yield equation, treats GND as a characterization metric only.
+- **No M54-specific data** combining GND-only (EBSD/ASTAR) and
+  total-ρ (XRD-WH) on the same samples in our refs.
+
+So ρ<sub>SSD</sub>/ρ<sub>GND</sub> is unconstrained by the literature
+for cold-worked martensitic UHSS at ε<sub>p</sub> ≈ 1. We exposed an
+explicit `ssd_multiplier` knob (default 1.0 = GND only) and ran a
+sensitivity sweep:
+
+| CR % | meas | k=1.0 | k=1.5 | k=2.0 | k=2.5 | k=3.0 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0  | 1300 | 1420 (+9 %) | 1490 (+15 %) | 1549 (+19 %) | 1601 (+23 %) | 1648 (+27 %) |
+| 60 | 1900 | 1589 (−16 %) | 1714 (−10 %) | 1819 (−4 %) | **1912 (+0.6 %)** | 1996 (+5 %) |
+
+**Key insight:** k = 2.5 closes the 60 % CR gap to <1 %, but the same
+k blows the 0 % over-prediction up from +9 % to +23 %. **One uniform
+SSD multiplier can't fix both ends** — the 0 % CR issue is a separate
+problem (coarser equivalent block from cross-rolled prior history),
+not a missing SSD term.
+
+**The right calibration anchor would be a modified Williamson-Hall
+analysis on the user's existing XRD spectra at all four CR conditions,
+giving ρ<sub>total</sub> directly per-sample.** All four spectra are
+already loaded via `m54model.xrd.load_xrd_spectrum`, so the WH analysis
+is unblocked and pending Phase 3.6e+.
+
+For Phase 3.6f (sub-block Hall-Petch), the `ssd_multiplier` will
+likely settle at ~1.0-1.5 once the sub-block term takes care of part
+of the 60 % gap.
+
+**Captured in:**
+- `m54_af_t516_10_cw(cw_pct, location, ssd_multiplier)` parameter
+- `predict_cw_cr_sweep(..., ssd_multiplier)` parameter
+- 5 new tests (91 total pass)
+- Notebook 02 §3b SSD sensitivity sweep + plot
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single

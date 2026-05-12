@@ -121,23 +121,34 @@ def m54_af_t516_10_cw(
     cw_pct: float,
     *,
     location: str = "surface",
+    ssd_multiplier: float = 1.0,
 ) -> MicrostructuralState:
-    """**Phase 3.6d** — M54 AF + T516/10 + N % cold-rolling state factory.
+    """**Phase 3.6d / 3.6e** — M54 AF + T516/10 + N % cold-rolling state factory.
 
     Builds on `m54_af550_45_t516_10()` (the cw/cr starting state) and swaps
     in the user's measured cw/cr inputs:
 
-    - **Dislocation density**: from `USER_M54_GND_DENSITY` BCC median ρ at
-      this CR. NOTE this is GND only; total ρ = ρ<sub>GND</sub> + ρ<sub>SSD</sub>
-      is likely higher by ~2× to ~10× depending on CR. So predicted σ<sub>ρ</sub>
-      from this factory is a LOWER BOUND on the dislocation contribution.
+    - **Dislocation density**: ρ<sub>total</sub> = `ssd_multiplier` ×
+      ρ<sub>GND</sub> from `USER_M54_GND_DENSITY`. ASTAR-PED measures GND
+      only; SSDs are not directly observed. Lit-review finding (Phase
+      3.6e): no paper in our refs explicitly partitions ρ<sub>GND</sub>
+      from ρ<sub>SSD</sub> in the strengthening equation — most use XRD-WH
+      total ρ as the input, with no published k = ρ<sub>total</sub> /
+      ρ<sub>GND</sub> consensus for cold-worked martensitic UHSS at
+      ε<sub>p</sub> ≈ 1. Default `ssd_multiplier = 1.0` (no SSD
+      addition — i.e., trust ASTAR ρ<sub>GND</sub> as ρ<sub>total</sub>);
+      use 2.0-3.0 to explore the effect of adding SSDs on top. The
+      ground-truth answer for these specific samples would come from a
+      modified Williamson-Hall analysis on the user's XRD spectra
+      (Phase 3.6e+ deliverable; data already loaded via
+      `m54model.xrd.load_xrd_spectrum`).
     - **Reverted austenite fraction**: from `USER_M54_CW_AUSTENITE_SURFACE`
       (or `_CORE` if `location='core'`).
     - **Block width**: held at 0.48 µm (Sun AF baseline) — cold rolling
       fragments at the sub-block scale, not the block scale. The
       sub-block (cell) refinement that ASTAR sees is not captured by
-      block-based Hall-Petch; this is a known under-prediction at high
-      CR (Phase 3.6d gap analysis).
+      block-based Hall-Petch; addressed in Phase 3.6f via a separate
+      sub-block Hall-Petch term (when implemented).
     - **M2C population**: held at the 516 °C / 10 h post-temper state —
       cold rolling at room temp (T_max ≈ 80 °C) is too cold for further
       M2C precipitation/coarsening on the rolling timescale.
@@ -147,6 +158,10 @@ def m54_af_t516_10_cw(
     measurement points). Use 0 to recover `m54_af550_45_t516_10()`
     directly with the location-specific f_A.
     """
+    if ssd_multiplier < 1.0:
+        raise ValueError(
+            f"ssd_multiplier must be >= 1.0 (1.0 = GND only); got {ssd_multiplier}"
+        )
     from m54model.calibration.user_microstructure_data import gnd_for_cr
     from m54model.calibration.user_trip_data import (
         USER_M54_CW_AUSTENITE_CORE,
@@ -165,6 +180,7 @@ def m54_af_t516_10_cw(
         raise KeyError(f"no f_A data at cw_pct={cw_pct}, location={location!r}")
 
     rho_BCC_GND = gnd_for_cr(cw_int, location_phase="BCC_median")
+    rho_total = ssd_multiplier * rho_BCC_GND
 
     m2c = m2c_population_af_tempered(T_celsius=516.0, t_hours=10.0)
     return MicrostructuralState(
@@ -173,13 +189,17 @@ def m54_af_t516_10_cw(
         packet_size_um=6.7,
         pag_width_um=47.0,
         lath_width_nm=135.0,
-        dislocation_density_per_m2=rho_BCC_GND,  # GND lower-bound; see docstring
+        dislocation_density_per_m2=rho_total,
         f_austenite=f_A_pt.f_austenite,
         f_austenite_kind="reverted",
         matrix_at_frac=_matrix_tempered(),
         wt_pct_C_in_solution=0.003,
         precipitates=[m2c],
-        label=f"M54 AF + T516/10 + {cw_int} % CR ({location})",
+        label=(
+            f"M54 AF + T516/10 + {cw_int} % CR ({location}, ρ_SSD ×{ssd_multiplier:.1f})"
+            if ssd_multiplier != 1.0
+            else f"M54 AF + T516/10 + {cw_int} % CR ({location})"
+        ),
     )
 
 
@@ -188,6 +208,7 @@ def predict_cw_cr_sweep(
     location: str = "core",
     cw_pcts: tuple[int, ...] = (0, 20, 40, 60),
     apply_strain_rate_correction: bool = True,
+    ssd_multiplier: float = 1.0,
 ) -> list[dict[str, float | str | None]]:
     """Phase 3.6d sweep: predict σ_y at each CR condition and compare to
     measured tensile (where available).
@@ -219,7 +240,9 @@ def predict_cw_cr_sweep(
 
     rows: list[dict[str, float | str | None]] = []
     for cw in cw_pcts:
-        state = m54_af_t516_10_cw(float(cw), location=location)
+        state = m54_af_t516_10_cw(
+            float(cw), location=location, ssd_multiplier=ssd_multiplier
+        )
         res = assemble_yield_strength(state)
         sigma_qs = res.sigma_y_austenite_corrected_MPa
         sigma_user = sigma_qs * factor

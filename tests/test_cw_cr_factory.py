@@ -78,3 +78,45 @@ def test_sigma_y_responds_to_GND() -> None:
     delta = res20.contributions_MPa["sigma_rho"] - res0.contributions_MPa["sigma_rho"]
     assert delta > 250  # ~300 expected
     assert delta < 350
+
+
+def test_ssd_multiplier_default_is_one() -> None:
+    """Default ssd_multiplier = 1.0 → uses GND directly as total ρ."""
+    s = m54_af_t516_10_cw(60, location="core")
+    # 60 % CR core BCC GND = 6.3e15.
+    assert s.dislocation_density_per_m2 == pytest.approx(6.3e15, rel=0.05)
+
+
+def test_ssd_multiplier_scales_dislocation_density() -> None:
+    """ssd_multiplier = 2.5 → ρ_total = 2.5 × ρ_GND."""
+    s1 = m54_af_t516_10_cw(60, location="core", ssd_multiplier=1.0)
+    s25 = m54_af_t516_10_cw(60, location="core", ssd_multiplier=2.5)
+    assert s25.dislocation_density_per_m2 == pytest.approx(
+        2.5 * s1.dislocation_density_per_m2, rel=1e-6
+    )
+
+
+def test_ssd_multiplier_lower_than_one_rejected() -> None:
+    """ssd_multiplier < 1.0 means subtracting from GND, which is unphysical."""
+    with pytest.raises(ValueError):
+        m54_af_t516_10_cw(60, location="core", ssd_multiplier=0.5)
+
+
+def test_ssd_multiplier_label_changes() -> None:
+    """A non-default ssd_multiplier should appear in the state label so
+    downstream plots/tables don't conflate the two."""
+    s_default = m54_af_t516_10_cw(40, location="surface")
+    s_with_ssd = m54_af_t516_10_cw(40, location="surface", ssd_multiplier=2.0)
+    assert "SSD" not in s_default.label  # default doesn't advertise the knob
+    assert "SSD" in s_with_ssd.label.upper() or "×" in s_with_ssd.label
+
+
+def test_predict_sweep_with_ssd_multiplier_closes_60pct_gap() -> None:
+    """Sensitivity check: ssd_multiplier ≈ 2.5 brings 60 % CR miss to <2 %.
+    Doesn't fix 0 % CR (separate issue — block size). See FINDINGS Phase 3.6e."""
+    rows = predict_cw_cr_sweep(location="core", ssd_multiplier=2.5)
+    r60 = next(r for r in rows if r["cw_pct"] == 60)
+    assert abs(r60["miss_pct"]) < 2.0
+    # And 0 % CR is *more* over-predicted, not fixed.
+    r0 = next(r for r in rows if r["cw_pct"] == 0)
+    assert r0["miss_pct"] > 20.0
