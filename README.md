@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.8c lands: H-data-anchored bulk σ<sub>y</sub> via per-zone Eq. 1 inversion + volume weighting is now a first-class predictor (`predict_bulk_sigma_y_h_anchored`). Within ±2 % of measured tensile at both 0 % and 60 % CR, NO hand-fit knobs. Side-by-side `cw_cr_sigma_y_summary()` exposes all three approaches (3.7b empirical, 3.8a microstructure-only, 3.8c H-anchored) for direct comparison. New paper-ready 2-panel figure in `notebooks/02 §3c` + Suveen-facing progress report at `docs/CW_CR_PROGRESS_REPORT_2026_05_12.md`. 160/160 tests pass.
+> **Last updated:** 2026-05-12 — Phase 3.9a + figure inventory: **Maresca-anchored tensile-toughness predictor** lands (`predict_tensile_toughness_maresca`). U = (ε<sub>baseline</sub> + κ<sub>film</sub>·f<sub>film</sub>) · σ<sub>avg</sub> with κ<sub>film</sub>=0.50 calibrated to user's 4-point U data (RMSE ≈ 15 %). At 60 % CR, the Maresca-film contribution is ~36 % of total U (145/398 MJ/m³). **Notebook 02 figure inventory complete**: §3b default cw/cr, §3c 3-approach σ<sub>y</sub>(CR) + per-zone gradient panel, §3d Zhu-Fig-10-style σ<sub>y</sub> stacked-bar contribution attribution, §3e Maresca U(CR) stacked vs measured. 169/169 tests pass.
 
 ## Status
 

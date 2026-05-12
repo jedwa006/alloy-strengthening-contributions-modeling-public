@@ -1773,6 +1773,79 @@ This framing is now incorporated in the Suveen progress report
 (Section 1 mechanistic framing + Section 6 next-direction option for
 the K_IC story).
 
+### Phase 3.9a — Maresca-anchored tensile-toughness predictor `[Phase 3.9a]`
+
+Operationalizes the Maresca interlath-austenite-plasticity framework
+(2014 / 2017 / 2018 papers; now in our bib via the Phase 3.7c-followup
+re-export) as a phenomenological tensile-toughness predictor for the
+user's cw/cr regime.
+
+**Functional form**:
+
+  U<sub>total</sub> = (ε<sub>baseline</sub> + κ<sub>film</sub>·f<sub>film</sub>) · σ<sub>avg</sub>
+
+with σ<sub>avg</sub> = (σ<sub>y</sub> + σ<sub>UTS</sub>)/2,
+ε<sub>baseline</sub> = 0.11 (matrix-only EL at 0 % CR), and
+**κ<sub>film</sub> = 0.50** calibrated to user's 4-point measured U
+data (RMSE ≈ 15 %).
+
+**Calibration result vs measured tensile toughness:**
+
+| CR % | f<sub>film</sub> | σ<sub>avg</sub> | U<sub>matrix</sub> | U<sub>film</sub> | U<sub>pred</sub> | U<sub>meas</sub> | miss |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0  | 0.026 | 1700 | 187 | 22  | 209 | 219 ± 13 | −4.5 % |
+| 47 | 0.108 | 2200 | 242 | 119 | 361 | 322 ± 9  | +12.2 % |
+| 53 | 0.117 | 2100 | 231 | 122 | 353 | 280 ± 12 | **+26.2 %** |
+| 60 | 0.126 | 2300 | 253 | 145 | 398 | 434 ± 23 | −8.3 % |
+
+**Key result**: at 60 % CR the Maresca-film contribution is **~36 % of
+total tensile toughness** (145 / 398 MJ/m³). This is the quantitative
+bound on the user's reported toughness-doubling story — the rest comes
+from σ<sub>avg</sub>(CR) growth via the matrix-strengthening mechanisms
+already in the model.
+
+**Open question**: the +26 % over-prediction at 53 % CR is unexplained
+by linear-in-f<sub>film</sub> scaling. The user's measured U at 53 %
+(280) DIPS below 47 % (322) despite similar f<sub>film</sub>; per Ch 4
+the morphology evolves from "connected boundary-following network" at
+40 % to "uniformly distributed elongated residual films" at 60 %. The
+60 % morphology may be more efficiently engaged with the Maresca
+glissile-interface mechanism than the 40 / 53 % bimodal architecture.
+A κ<sub>film</sub>(CR, morphology) refinement is the natural Phase
+3.9b candidate.
+
+**Why κ<sub>film</sub> = 0.5 vs Maresca's atomistic upper bound ~0.9**:
+Maresca-Curtin 2017 reports transformation strains "up to ~90 %" at
+the ATOMISTIC fcc/bcc interface. The macroscopic-bulk Δε contribution
+per unit film fraction is much smaller because films are not uniformly
+in optimal orientation for shear-driven transformation (Schmid-type law
+per Maresca-Curtin 2018). κ<sub>film</sub> = 0.50 = ~55 % of the
+atomistic upper bound is consistent with a Schmid-averaged effective
+contribution.
+
+**Implementation**:
+- `m54model.toughening.maresca_tensile.predict_tensile_toughness_maresca(...)`
+- `m54model.toughening.maresca_tensile.cw_cr_tensile_toughness_sweep(...)`
+- 8 new tests; 169 total pass.
+- Visualization in notebook 02 §3e.
+
+### Phase 3.X — paper-figure inventory updates `[Phase 3.X]`
+
+Notebook 02 now has the full cw/cr figure set the manuscript will need:
+
+- **§3b** (existing) — σ<sub>y</sub>(CR) for default knobs (Phase 3.6d)
+- **§3c** (existing) — three-approach predicted-vs-measured comparison
+  (Phase 3.8a/b/c bulk panel + per-zone gradient-reversal panel)
+- **§3d** (NEW) — Zhu-Fig-10-style stacked-bar contribution attribution
+  per CR. σ<sub>0</sub> + σ<sub>ss</sub> + σ<sub>HP</sub>(block) +
+  σ<sub>ρ</sub> + σ<sub>p</sub>(M2C) + σ<sub>HP,sub</sub> with f<sub>A</sub>
+  correction overlay; matches the Zhu 2025 Fig. 10 structure for paper-
+  inventory consistency. Measured σ<sub>y</sub> red-star markers at 0 %
+  and 60 % CR.
+- **§3e** (NEW) — Maresca-anchored U(CR) prediction stacked vs measured.
+  Shows U<sub>matrix</sub> + U<sub>film</sub> contributions per CR
+  alongside measured U with error bars.
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
