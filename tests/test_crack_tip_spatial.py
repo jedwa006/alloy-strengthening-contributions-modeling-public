@@ -82,6 +82,43 @@ def test_spatial_grid_resolution_independence() -> None:
     assert rel_err < 0.05
 
 
+def test_hrr_rescale_reduces_PC_trigger_under_M_s_offset() -> None:
+    """Phase 3.6c — HRR's slower σ_eq decay inside Ω_p means fewer points
+    exceed the M_s-offset PC threshold than under Williams-K. <f_PC> drops
+    by ~30-40 % at moderate offsets."""
+    state = m54_af550_45_t516_10()
+    K_field = crack_tip_KIC_spatial(
+        state, K_matrix_MPa_m_half=100.0, M_s_offset_K=50.0,
+        use_hrr_radial_rescale=False,
+    )
+    HRR = crack_tip_KIC_spatial(
+        state, K_matrix_MPa_m_half=100.0, M_s_offset_K=50.0,
+        use_hrr_radial_rescale=True,
+    )
+    assert HRR.f_PC_avg < K_field.f_PC_avg
+    assert HRR.delta_K_TRIP_MPa_m_half < K_field.delta_K_TRIP_MPa_m_half
+    # ~30 % drop expected; loose bounds.
+    ratio = HRR.delta_K_TRIP_MPa_m_half / K_field.delta_K_TRIP_MPa_m_half
+    assert 0.4 < ratio < 0.9
+
+
+def test_hrr_and_K_agree_at_zero_M_s_offset() -> None:
+    """With M_s_offset=0, PC saturates at 1.0 everywhere in Ω_p regardless of
+    σ_eq magnitude — so HRR vs K-field agree."""
+    state = m54_af550_45_t516_10()
+    K_field = crack_tip_KIC_spatial(
+        state, K_matrix_MPa_m_half=100.0, M_s_offset_K=0.0,
+        use_hrr_radial_rescale=False,
+    )
+    HRR = crack_tip_KIC_spatial(
+        state, K_matrix_MPa_m_half=100.0, M_s_offset_K=0.0,
+        use_hrr_radial_rescale=True,
+    )
+    assert HRR.delta_K_TRIP_MPa_m_half == pytest.approx(
+        K_field.delta_K_TRIP_MPa_m_half, rel=0.01
+    )
+
+
 def test_spatial_repr_includes_fractions() -> None:
     state = m54_af550_45_t516_10()
     r = crack_tip_KIC_spatial(state, K_matrix_MPa_m_half=80.0, M_s_offset_K=50.0)

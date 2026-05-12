@@ -131,3 +131,36 @@ def angular_g_factor(
     """
     s = williams_k_field(1.0, theta_rad, 1.0, nu=nu, plane_strain=plane_strain)
     return s.mises_equivalent_MPa * math.sqrt(2.0 * math.pi)
+
+
+def hrr_radial_rescale(
+    sigma_eq_K_field_MPa: float,
+    sigma_y_MPa: float,
+    r_m: float,
+    r_p_local_m: float,
+    n_workhardening: float,
+) -> float:
+    """Phase 3.6c — replace the Williams-K elastic radial scaling
+    (σ ∝ r^(−½)) with the HRR singular-plastic-field scaling
+    (σ ∝ r^(−1/(n+1))) INSIDE the plastic zone, while preserving the
+    K-field's angular shape.
+
+    Outside Ω<sub>p</sub> (where K-field is correct): pass-through.
+
+    Inside Ω<sub>p</sub>: rescale so that σ<sub>eq</sub> = σ<sub>y</sub>
+    at r = r<sub>p</sub>(θ), and scales as (r<sub>p</sub>/r)^(1/(n+1))
+    going inward (HRR singular-plastic field; Hutchinson 1968).
+
+    For n → ∞ (perfectly plastic): σ_eq → σ_y everywhere inside Ω_p
+    (perfect plateau). For n → 1 (no hardening): scaling → r^(−½),
+    which recovers the K-field. Typical M54 tempered martensite:
+    n ≈ 5 - 10.
+    """
+    if r_m <= 0 or r_p_local_m <= 0 or n_workhardening <= 0:
+        return sigma_eq_K_field_MPa
+    if sigma_eq_K_field_MPa <= sigma_y_MPa:
+        return sigma_eq_K_field_MPa  # outside Ω_p, K-field is fine
+    if r_m >= r_p_local_m:
+        return sigma_eq_K_field_MPa
+    # Inside Ω_p: σ_eq(r) = σ_y · (r_p / r)^(1/(n+1))
+    return sigma_y_MPa * (r_p_local_m / r_m) ** (1.0 / (n_workhardening + 1.0))
