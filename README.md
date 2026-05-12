@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.7b: CR-dependent K<sub>sub</sub>(CR) via empirical f<sub>engaged</sub>(CR) refinement-fraction multiplier closes the +17 % H<sub>α′</sub>(20 %) over-prediction from Phase 3.7a. Default engagement table (0 / 0 / 0.7 / 1.0 across 0/20/40/60 % CR) anchored to Ch 4 §"Grain Architecture" qualitative description: refinement is surface-localized at 20 % CR, bimodal at 40 %, cross-section-wide at 60 %. All four H<sub>α′</sub> predictions now land within ±6 % of Ch 5 phase-corrected values without per-CR retuning. 140/140 tests pass.
+> **Last updated:** 2026-05-12 — Phase 3.8a (through-thickness mixture model) + Phase 3.7c (lit search) landed in parallel. **3.8a**: per-zone σ<sub>y</sub> with linearly-interpolated f<sub>A</sub> + d<sub>subblock</sub> from surface to core, volume-weighted to bulk. At 60 % CR the TT mixture under-predicts σ<sub>y</sub> by −13.6 %, *opposite direction* from Phase 3.7b's empirical f<sub>engaged</sub>(CR) which over-shoots the right answer; the 280 MPa disagreement is itself informative — neither captures the surface-matrix-hardening gradient that the user's nanoindent data reveals. **3.7c**: subagent lit-review found no published K<sub>sub</sub> for AerMet-class steels (our 150 MPa·µm<sup>½</sup> is a genuine model-form contribution); flagged a critical Akama 2016 DOI mismatch in BOTH chapter bibs; identified Mondière 2025's YS = 1978 − 68·γ% as a directly-usable M54-specific anchor for the austenite rule-of-mix term. 151/151 tests pass.
 
 ## Status
 

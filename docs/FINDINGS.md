@@ -1497,6 +1497,142 @@ A more rigorous extension (Phase 3.8a candidate) would predict
 zone-resolved data, then volume-weight to bulk — that derives
 f<sub>engaged</sub>(CR) from microstructure rather than calibrating it.
 
+### Phase 3.8a — Through-thickness mixture model `[Phase 3.8a]`
+
+Built `m54model.strengthening.through_thickness` per Ch 4 §"Grain
+Architecture and Through-Thickness Refinement" framing. The user's
+nanoindent zones (0-50 / 50-100 / 100-250 / 250-500 µm / Core) define
+a natural 5-zone partition. Per-zone σ<sub>y</sub> uses
+linearly-interpolated f<sub>A</sub> and d<sub>subblock</sub> between
+the user's measured surface and core values; ρ<sub>GND</sub> is held
+at the per-CR median (no zone-resolved data). Volume-weight to bulk
+using Ch 5 §M&M plate thicknesses (3.80 / 3.04 / 2.28 / 1.52 mm at
+0/20/40/60 % CR).
+
+**Comparison: through-thickness bulk vs direct-core+K<sub>sub</sub>=150 vs measured**
+
+| CR % | meas σ<sub>y</sub> | core+K<sub>sub</sub>=150 (direct) | TT mixture (K<sub>sub</sub>=150) |
+|---:|---:|---:|---:|
+| 0  | 1300 ± 30 | 1420 (+9.2 %)  | 1427 (+9.8 %) |
+| 20 | (no tensile) | 1745 | 1886 |
+| 40 | (no tensile) | 1878 | 1796 |
+| 60 | 1900 ± 50 | **1923 (+1.2 %)** | **1641 (−13.6 %)** |
+
+**Key Phase 3.8a finding**: at 60 % CR, **the empirical f<sub>engaged</sub>(CR)
+calibration from Phase 3.7b and the physics-based through-thickness
+mixture give different bulk σ<sub>y</sub>** by ~280 MPa. Both are
+simplifications; their disagreement is informative:
+
+- Phase 3.7b f<sub>engaged</sub>=1.0 + direct-core inputs gives 1923 MPa
+  (closes measurement to +1.2 %).
+- Phase 3.8a TT mixture with K<sub>sub</sub>=150 + interpolated zone
+  inputs gives 1641 MPa (under-predicts by −13.6 %).
+
+The TT under-prediction stems from softer surface zones in the
+mixture: surface f<sub>A</sub> = 0.174 (vs core 0.135) drives a larger
+rule-of-mixtures austenite correction at the surface, AND the
+linearly-interpolated d<sub>subblock</sub> at the surface is *coarser*
+than at the core (median per-foil heterogeneity per Ch 4 — surface is
+bimodal). Net: the predicted surface zones are weaker than core zones
+in the TT mixture (1431 vs 1816 MPa at 60 % CR), pulling bulk down.
+
+**But the user's actual nanoindent data shows the OPPOSITE**: H is
+HIGHER at surface (8.06 GPa) than core (7.24 GPa) at 60 % CR. So the
+matrix H<sub>α′</sub> itself must be much higher at the surface than
+the linear-interpolation of f<sub>A</sub> + d<sub>subblock</sub> can
+capture. The surface-localized cumulative shear strain (Ch 4 page 8)
+makes the surface matrix harder, not just γ-enriched. This is a
+**physical signal that the linear interpolation between surface and
+core is missing the dominant gradient (matrix work-hardening)**.
+
+**Reconciliation paths**:
+1. The empirical f<sub>engaged</sub>(CR) in Phase 3.7b is a *result*
+   of the unmodeled surface-matrix-hardening effect — it's not really
+   about sub-block HP, it's a catch-all calibration.
+2. A proper TT model would need zone-resolved ρ<sub>GND</sub> (currently
+   only the median across all zones is reported), so the matrix
+   strengthening per zone could differ.
+3. Or the TT model should use the user's measured per-zone H<sub>composite</sub>
+   directly via Eq. 1 inversion to recover per-zone H<sub>α′</sub>, then
+   Tabor-derive per-zone σ<sub>y</sub>. That uses the empirical data
+   instead of trying to predict from microstructure proxies. Phase 3.8b
+   candidate.
+
+**Implementation captured in:**
+- `src/m54model/strengthening/through_thickness.py` (~200 lines)
+- `tests/test_through_thickness.py` (11 new tests)
+- 151 total tests pass.
+
+### Phase 3.7c — Lit-search findings (subagent + bib guardrails) `[Phase 3.7c]`
+
+Spawned a subagent with both chapter bibs as guardrails to investigate
+whether the Phase 3.7a/b knobs have published precedent. Tool budget
+~24 calls, ~5 min wall. Findings:
+
+**Critical bib correction needed** (high priority for paper submission):
+- **Akama 2016 DOI is WRONG in BOTH Ch 4 and Ch 5 bibs.** Both list
+  `10.2355/isijinternational.ISIJINT-2016-077` — Crossref shows that's
+  a Chang et al. tundish paper, not Akama. Correct DOI is
+  `10.2355/isijinternational.isijint-2016-140`. The local PDF in
+  `reference docs/Chapter 5_Refs_Paper1/files/9788/` (filename starts
+  "Akama et al.") is *also* the Chang tundish content. The actual Akama
+  PDF needs to be re-pulled from J-STAGE.
+- **Implication for Ch 4/Ch 5**: Akama 2016 is cited as the dislocation-
+  density-saturation reference for the 60 % CR H<sub>α′</sub> drop
+  story. Until the correct PDF is in hand, that interpretive claim
+  cannot be cross-checked.
+
+**Q1 — published K<sub>sub</sub> value for AerMet-class steels**:
+*None exists.* Galindo-Nava 2015 gives K<sub>HP</sub> = 300 MPa·µm<sup>½</sup>
+for *block* boundaries (multi-alloy fit, Eq. 8). Morito 2006 gives
+0.72-0.85 MPa·m<sup>½</sup> (≈720-850 MPa·µm<sup>½</sup>) for *block*
+boundaries in Fe-0.2C. **Our K<sub>sub</sub> = 150 MPa·µm<sup>½</sup>**
+(half of Galindo-Nava's K<sub>block</sub>) is consistent with sub-blocks
+being lower-misorientation than blocks but remains a single-point fit
+without literature precedent.
+
+**Q2 — K<sub>matrix</sub>(d<sub>subblock</sub>) law for UHSS toughness**:
+*None exists.* Wang 2023 (already cited Ch 5) attributes K<sub>IC</sub>
+trends in AerMet 100 to **reverted austenite content, not sub-block
+size**. Implication: our K<sub>IC</sub>(CR) doubling story should
+reframe around RA evolution, not matrix-toughness scaling. This
+*restricts* the modeling space rather than expanding it.
+
+**Q3 — Maresca framework**: Maresca-Curtin **Acta Mater. 156, 463-478
+(2018)**, DOI `10.1016/j.actamat.2018.06.028`, is the missing companion
+to the 2014 paper already cited; **not yet in any of our bibs**. Should
+be added to Ch 4. Neither Maresca paper provides a drop-in α/β
+replacement for Olson-Cohen.
+
+**Q4 — Šittner 2025 reverse/forward stress threshold ratios**:
+σ<sub>REV</sub>/σ<sub>FOR</sub> ≈ 0.7 reading off Fig. 2a at T=0 °C
+(NiTi, SE wire). No universal ratio claimed — depends on T and wire
+type. **No steel analog in Šittner's paper.** Means the reverse-
+transformation analogy in our `CW_CR_STRENGTHENING_ANALYSIS.md` §3 is
+qualitative; quantitative use needs Patel-Cohen σ<sub>critical</sub>
+calibration, not a borrowed NiTi ratio.
+
+**Q6 — Mondière 2025 has a directly usable empirical relation**:
+**YS = 1978 − 68·γ%** for M54 (their Eq. 2; 68 MPa softening per 1 % RA
+volume fraction). This is a **direct anchor** for our austenite
+rule-of-mixtures correction (currently we use σ<sub>A</sub> = 360 MPa
+from Li 2026 C64). Phase 3.7d candidate: re-calibrate the f<sub>A</sub>
+rule-of-mix term against Mondière's M54-specific measurement.
+
+**Bib changes needed** (when ready to submit chapters):
+1. Fix Akama 2016 DOI in both Ch 4 and Ch 5 bibs.
+2. Add Maresca-Curtin 2018 (DOI `10.1016/j.actamat.2018.06.028`) to Ch 4
+   bib.
+3. Re-fetch the actual Akama 2016 PDF from J-STAGE (open access).
+
+**No-news answer (also useful)**: there is no published K<sub>sub</sub>
+or K<sub>matrix</sub>(d<sub>subblock</sub>) law for UHSS, period. Our
+empirical fits are a genuine model-form contribution; they don't have
+a citation gap that needs filling.
+
+Full report at `/tmp/lit_search_phase_3_7.md` (transient — would need
+to be persisted into `docs/` if we want to keep it).
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
