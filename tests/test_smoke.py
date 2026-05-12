@@ -154,3 +154,41 @@ def test_summation_strategies_diverge() -> None:
     r_lin = assemble_yield_strength(state, strategy="linear")
     r_dp = assemble_yield_strength(state, strategy="pythagorean_dp")
     assert r_lin.sigma_y_MPa > r_dp.sigma_y_MPa
+
+
+def test_orowan_subcritical_clamp_vs_raw() -> None:
+    """For a sub-Burgers M2C population the Orowan formula goes negative.
+    Clamp mode (default) returns 0; raw mode returns the negative value.
+
+    Pinpoints the bug Plot 3 surfaced: m2c_population_dq_tempered at very
+    low T / short t can produce r_eq << b, which the bare Ashby-Orowan
+    formula treats as a negative strengthening (subtractive). Clamp mode
+    is the physically sensible default.
+    """
+    # r=0.05 nm is sub-Burgers (b=0.25): 2 * sqrt(2/3) * 0.05 / 0.25 = 0.33,
+    # ln(0.33) is negative → σ_Orowan < 0 in raw mode.
+    tiny_m2c = PrecipitatePopulation(
+        phase="M2C",
+        radius_nm=0.05,
+        number_density_per_m3=1e23,
+        spacing_nm=14.0,
+    )
+    state = MicrostructuralState(
+        state="dq_tempered",
+        block_width_um=1.18,
+        dislocation_density_per_m2=1.12e15,
+        matrix_at_frac=_matrix_at_frac_tempered(),
+        precipitates=[tiny_m2c],
+    )
+    r_clamp = assemble_yield_strength(state, orowan_sub_critical="clamp")
+    r_raw = assemble_yield_strength(state, orowan_sub_critical="raw")
+
+    assert r_clamp.contributions_MPa["sigma_M2C"] == 0.0, (
+        "clamp mode should zero out sub-critical Orowan contribution"
+    )
+    assert r_raw.contributions_MPa["sigma_M2C"] < 0.0, (
+        "raw mode should expose the unphysical negative value (formula limit)"
+    )
+    assert r_clamp.sigma_y_MPa > r_raw.sigma_y_MPa, (
+        "clamp prediction should exceed raw because raw subtracts the bad value"
+    )

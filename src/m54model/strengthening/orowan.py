@@ -1,14 +1,31 @@
 """Ashby-Orowan precipitation strengthening for non-shearable carbides."""
 
 import math
+from typing import Literal
 
 from m54model.constants import B_NM, G_MATRIX_GPA, Convention, StrengtheningConstants
 from m54model.precipitates import PrecipitatePopulation
+
+SubCriticalMode = Literal["clamp", "raw"]
+"""How to handle the regime where the Orowan formula goes negative because
+the precipitate radius is sub-Burgers (r_s < b/2 → ln(2 r_s / b) < 0):
+
+- 'clamp' (DEFAULT): return max(0, σ_Orowan). Physically: precipitates
+  this small are sheared by dislocations, not bypassed; the Orowan
+  contribution is zero in that regime. A separate shearing term should
+  cover the sheared case (not yet implemented for M2C since Wang 2024
+  treats M2C as non-shearable in M54 at the populations actually present).
+- 'raw': return the formula output unmodified, including negative values.
+  For diagnostic purposes — matching published numbers exactly, or
+  exposing model-form failures during calibration.
+"""
 
 
 def sigma_orowan_carbide(
     pop: PrecipitatePopulation,
     constants: StrengtheningConstants | None = None,
+    *,
+    sub_critical: SubCriticalMode = "clamp",
 ) -> float:
     """Ashby-Orowan looping for incoherent / large precipitates.
 
@@ -22,7 +39,11 @@ def sigma_orowan_carbide(
     (Zhu Eq. 13):
         sigma_p = 0.26 * (G b / r_eq) * f_v^(1/2) * ln(r_eq / b)
 
-    Returns MPa, or 0 if the population is empty (no f_v, no spacing).
+    `sub_critical`: how to handle r below the bowing/shearing transition
+    (where the ln term goes negative). Defaults to 'clamp' (return 0);
+    use 'raw' to expose the unmodified formula.
+
+    Returns MPa. Returns 0 if the population is empty (no f_v, no spacing).
     """
     c = constants or StrengtheningConstants.from_convention(Convention.SUN)
     r_nm = pop.equivalent_radius_nm
@@ -34,7 +55,7 @@ def sigma_orowan_carbide(
     if pop.spacing_nm is not None and pop.spacing_nm > 0:
         L_nm = pop.spacing_nm
         r_s_nm = math.sqrt(2.0 / 3.0) * r_nm
-        return (
+        sigma = (
             c.M_taylor
             * 0.4
             * G_MPa
@@ -43,8 +64,12 @@ def sigma_orowan_carbide(
             * (1.0 / L_nm)
             * math.log(2.0 * r_s_nm / B_NM)
         )
+    else:
+        f_v = pop.volume_fraction_inferred
+        if f_v is None or f_v <= 0:
+            return 0.0
+        sigma = 0.26 * G_MPa * B_NM / r_nm * math.sqrt(f_v) * math.log(r_nm / B_NM)
 
-    f_v = pop.volume_fraction_inferred
-    if f_v is None or f_v <= 0:
-        return 0.0
-    return 0.26 * G_MPa * B_NM / r_nm * math.sqrt(f_v) * math.log(r_nm / B_NM)
+    if sub_critical == "clamp":
+        return max(0.0, sigma)
+    return sigma

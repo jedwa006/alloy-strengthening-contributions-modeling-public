@@ -48,6 +48,8 @@ def assemble_yield_strength(
     constants: StrengtheningConstants | None = None,
     strategy: SummationStrategy = "linear",
     beta_overrides: dict[str, float] | None = None,
+    *,
+    orowan_sub_critical: str = "clamp",
 ) -> StrengtheningResult:
     """Compute YS from a microstructural state.
 
@@ -68,7 +70,8 @@ def assemble_yield_strength(
         "sigma_intr": sigma_intrinsic_martensite(state),
     }
     p_terms: dict[str, float] = {
-        f"sigma_{p.phase}": sigma_orowan_carbide(p, constants=c) for p in state.precipitates
+        f"sigma_{p.phase}": sigma_orowan_carbide(p, constants=c, sub_critical=orowan_sub_critical)
+        for p in state.precipitates
     }
     contribs.update(p_terms)
 

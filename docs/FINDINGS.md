@@ -529,6 +529,53 @@ on FCC at ρ = 6.5e16 m⁻² gives σ_y,γ ≈ 660 MPa with FCC constants
 Phase 3.5 should support per-condition σ_A from measured FCC ρ instead of a
 constant 360 MPa default.
 
+### Phase 3.4 — Orowan sub-critical clamp fix `[Phase 3.4]`
+
+The Ashby-Orowan formula `(1/L) · ln(2 r_s / b)` goes negative when the
+precipitate sphere-equivalent radius drops below `b · √(3/2) / 2 ≈ 0.15 nm`
+(for b = 0.25 nm). Below that radius, dislocations don't bow around
+precipitates — they cut through them ("shearable" regime). The Orowan
+formula is fundamentally misapplied in that sub-Burgers regime.
+
+Visible in **Notebook 1 Plot 3 (DQ tempering YS vs t)**: the 425 °C
+curve dropped to ~150 MPa at t = 0.5 h, well below the bare-matrix
+contribution (σ_0 + σ_ss + σ_HP + σ_ρ ≈ 700 MPa). The kinetics module
+was producing tiny phantom M2C populations (r ≈ 0.06 nm) that triggered
+a negative Orowan output (~−500 MPa). The total was matrix + (−500) =
+~200 MPa, which the plot showed faithfully.
+
+**Fix** (`feat/orowan-subcritical-clamp`): added a `sub_critical`
+parameter to `sigma_orowan_carbide`, defaulting to `"clamp"` (return
+`max(0, σ_Orowan)`). Diagnostic `"raw"` mode preserves the unmodified
+formula for reproducing published numbers or exposing future model-form
+failures.
+
+**Calibration impact: none.** All four Sun 2022 anchors have M2C
+populations with r ≥ 0.85 nm, well into the bowing regime where the
+formula is valid. Anchor predictions unchanged:
+
+  | Anchor                | Predicted | Measured | Miss (unchanged from Phase 2) |
+  |-----------------------|----------:|---------:|-----:|
+  | DQ                    | 1419      | 1420     | −0.1 % |
+  | DQ + T516/10          | 1675      | 1762     | −4.9 % |
+  | AF550/45              | 1864      | 1830     | +1.9 % |
+  | AF550/45 + T425/10    | 1748      | 1726     | +1.3 % |
+
+**Plot 3 impact**: the 425 °C curve now correctly shows the matrix
+baseline (~675 MPa) up to ~2 h, then ramps up smoothly once M2C grows
+into the bowing regime, reaching ~1925 MPa at 100 h. 475 °C and 516 °C
+curves are essentially unchanged because their M2C populations were
+already in the Orowan regime.
+
+**Open follow-up:** the sub-Burgers regime in reality has a real
+*shearing* contribution `σ_shear ~ √r · √f_v · √(coherency-strain)` that
+GROWS with r until it crosses Orowan at r_critical. Currently we return
+0 in that regime, which under-counts strength for genuinely small
+coherent precipitates. For M2C in M54 it doesn't matter (Wang 2024
+treats M2C as non-shearable at all populations actually present), but if
+we ever model NiAl in a related alloy we'd need an explicit shearing
+term. Tracked in `m54model/strengthening/orowan.py` docstring.
+
 ### Phase 3.5 (next) — Crack-tip K_IC integration
 - HRR (or simpler) crack-tip stress field model.
 - For each material point in plastic zone:
