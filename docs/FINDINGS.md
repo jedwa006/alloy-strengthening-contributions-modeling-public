@@ -714,6 +714,69 @@ similarly low retained-γ content.
 - Sum transformed-α′ volume → compressive residual stress field → ΔK_IC.
 - Validate against Mondière's M54 K_IC = 110 MPa·m^(1/2) anchor.
 
+### Phase 3.6a — Spatial K-field integration of PC + OC `[Phase 3.6a]`
+
+Replaced the bulk-averaged `f_transformed = max(f_PC, f_OC)` (single
+σ ≈ σ_y, single ε ≈ 0.10) with a polar integration over the elastic
+Williams K-field across the (kidney-shaped) Mises plastic zone Ω_p. New
+modules:
+
+- `m54model.toughening.williams_field` — `williams_k_field(r, θ, K)` returns
+  the StressTensor2D (σ_xx, σ_yy, σ_xy, σ_zz) under plane strain;
+  `irwin_zone_boundary_m(θ, K, σ_y)` returns the angle-resolved r_p(θ)
+  giving the kidney lobe; `angular_g_factor(θ; ν)` gives the pure
+  σ_eq angular dependence for plotting.
+- `m54model.toughening.crack_tip.crack_tip_KIC_spatial(...)` — same
+  signature as `crack_tip_KIC` but does the polar integration of f_PC
+  (Patel-Cohen on local σ_principal) and f_OC (Olson-Cohen on a power-law
+  local ε_p estimate). Iterates self-consistently like the bulk version.
+
+**Quantitative result for the user's M54 AF+T516/10 baseline (f_A = 1.3 %):**
+
+| M_s offset (K) | f_T bulk | f_T spatial | ΔK_TRIP bulk | ΔK_TRIP spatial | Δ%   |
+|---:|---:|---:|---:|---:|---:|
+| 0   | 1.000 | 1.000 | 0.58 | 0.58 |   0 % |
+| 50  | 0.486 | 0.832 | 0.28 | 0.48 | +72 % |
+| 100 | 0.243 | 0.456 | 0.14 | 0.26 | +89 % |
+
+(K_matrix = 100 MPa·m^½, M54 baseline.) **Reading:** at M_s_offset = 0,
+PC saturates everywhere → both methods give f_T = 1.0. As the offset
+rises (representing Ni-enriched γ films stable to deeper undercooling),
+the bulk version under-predicts by ~50-90 % because it samples PC at
+σ ≈ σ_y (the LOW end of the plastic zone). Spatial sees the kidney
+lobe where σ peaks above σ_y near the tip → more austenite triggers.
+
+**Qualitative finding survives:** at M54's f_A = 1.3 %, even the spatial
+ceiling (M_s_offset = 0) gives ΔK_TRIP ≈ 0.6 MPa·m^½ — still well below
+1 MPa·m^½ and far from Mondière's measured 110. Mondière's K_IC is
+essentially all bare matrix; transformation toughening is < 1 % of total.
+
+**Where this matters:** the spatial answer DOES matter when comparing
+the model to the user's measured γ-film M_s offsets. The Ni-enriched
+films at lath boundaries probably have M_s_offset in the 30-100 K range
+based on Sun 2022 EDS-measured Ni partitioning (~14 % vs nominal 10 %),
+so the bulk version was systematically conservative by ~70-90 %. Future
+calibration of M_s_offset against actual γ-film composition would tighten
+the prediction further.
+
+**Caveats remaining for Phase 3.6 follow-on:**
+
+- Williams K-field is the **elastic** singular field; inside Ω_p the
+  actual stress is bounded (HRR is more accurate). For σ_eq, the K-field
+  over-predicts by ~20-30 % near the tip; for σ_principal driving PC, it
+  similarly over-predicts. Phase 3.6c could swap in HRR (J-controlled).
+- Local ε_p estimate is a power-law proxy ε_y · ((σ_eq/σ_y)^n − 1) with
+  n = 5; HRR-J would give ε_p ∝ r^(−n/(n+1)) more rigorously.
+- The McMeeking-Evans wake-height h is still computed from the angle-
+  averaged Irwin r_p (not from the kidney-lobe area).
+- Spatial PC currently uses σ_principal as an "effective uniaxial" PC
+  driver — multiaxial PC (Magee-style projecting σ_ij on optimal habit
+  plane variant) would be a Phase 3.6 refinement.
+
+Captured in `tests/test_williams_field.py` (8 tests) and
+`tests/test_crack_tip_spatial.py` (7 tests), and notebook 03 §4 with the
+bulk-vs-spatial table, kidney-lobe polar plot, and σ_yy / σ_eq heat-maps.
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single

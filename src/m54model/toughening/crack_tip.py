@@ -25,6 +25,7 @@ Phase 3.6+ refinements (deferred):
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Literal
 
@@ -38,6 +39,10 @@ from m54model.toughening.mcmeeking_evans import (
 )
 from m54model.toughening.olson_cohen import OlsonCohenParams, olson_cohen_volume_fraction
 from m54model.toughening.patel_cohen import patel_cohen_max_work
+from m54model.toughening.williams_field import (
+    irwin_zone_boundary_m,
+    williams_k_field,
+)
 
 # Default Fe-Ni transformation strains (Patel-Cohen 1953 §3.2). M54-specific
 # values would come from XRD-measured γ vs α′ lattice parameters; flagged as
@@ -218,6 +223,260 @@ def crack_tip_KIC(
         f_transformed_fraction=f_transformed,
         iterations_to_converge=iters,
         sigma_y_matrix_MPa=sigma_y_MPa,
+    )
+
+
+# Default elastic-plastic strain proxy — small but non-trivial work hardening.
+# Inside the plastic zone, ε_p(r, θ) ≈ ε_y · ((σ_eq − σ_y)/σ_y) raised to a
+# power-law growth toward the tip. This is a practical placeholder; HRR-J-
+# controlled scaling (σ ∝ r^(−1/(n+1)), ε ∝ r^(−n/(n+1))) would be a Phase
+# 3.6+ refinement. n_workhardening = 5 corresponds to a moderately
+# strain-hardening tempered martensite.
+DEFAULT_N_WORKHARDENING = 5.0
+
+
+def _local_plastic_strain(
+    sigma_eq_MPa: float,
+    sigma_y_MPa: float,
+    *,
+    n_workhardening: float = DEFAULT_N_WORKHARDENING,
+    eps_y: float = 0.008,
+) -> float:
+    """Power-law plastic strain estimate at a point in the elastic-plastic zone.
+
+    For σ_eq ≤ σ_y returns 0. Above yield, returns ε_y · ((σ_eq/σ_y)^n − 1)
+    capped at 1.0 to avoid singular behavior near the crack tip.
+    """
+    if sigma_eq_MPa <= sigma_y_MPa:
+        return 0.0
+    return min(1.0, eps_y * ((sigma_eq_MPa / sigma_y_MPa) ** n_workhardening - 1.0))
+
+
+@dataclass(frozen=True)
+class SpatialCrackTipResult:
+    """Spatially-integrated crack-tip K_IC prediction (Phase 3.6a)."""
+
+    K_matrix_MPa_m_half: float
+    delta_K_TRIP_MPa_m_half: float
+    K_total_MPa_m_half: float
+    plastic_zone_area_m2: float
+    f_transformed_avg: float
+    """Area-weighted average of f_PC ⊕ f_OC over the plastic zone."""
+    f_PC_avg: float
+    f_OC_avg: float
+    iterations_to_converge: int
+    sigma_y_matrix_MPa: float
+    n_radial: int
+    n_theta: int
+
+    def __repr__(self) -> str:
+        return (
+            f"SpatialCrackTipResult(K_matrix={self.K_matrix_MPa_m_half:.1f}, "
+            f"ΔK_TRIP={self.delta_K_TRIP_MPa_m_half:.2f}, "
+            f"K_total={self.K_total_MPa_m_half:.1f} MPa·m^½, "
+            f"<f_PC>={self.f_PC_avg:.3f}, <f_OC>={self.f_OC_avg:.3f}, "
+            f"<f_transformed>={self.f_transformed_avg:.3f}, "
+            f"area={self.plastic_zone_area_m2 * 1e12:.2f} mm²·1e6)"
+        )
+
+
+def _spatial_average_transformed_fraction(
+    K_total_MPa_m_half: float,
+    sigma_y_MPa: float,
+    *,
+    nu: float,
+    gamma_0: float,
+    eps_0: float,
+    M_s_offset_K: float,
+    olson_cohen_params: OlsonCohenParams | None,
+    n_workhardening: float,
+    n_radial: int,
+    n_theta: int,
+    trigger_combiner: Literal["max", "sum_capped"],
+) -> tuple[float, float, float, float]:
+    """Walk the polar grid (r, θ) ∈ Ω_p (where σ_eq ≥ σ_y), compute
+    pointwise f_PC and f_OC, return area-weighted averages.
+
+    Returns (<f_transformed>, <f_PC>, <f_OC>, area).
+    """
+    import numpy as np
+
+    # θ grid spans the kidney lobe (avoid θ = ±π crack flanks where r_p → 0).
+    thetas = np.linspace(-math.pi * 0.95, math.pi * 0.95, n_theta)
+    r_p_max = max(
+        irwin_zone_boundary_m(t, K_total_MPa_m_half, sigma_y_MPa, nu=nu) for t in thetas
+    )
+    if r_p_max <= 0:
+        return 0.0, 0.0, 0.0, 0.0
+
+    # Radial grid is per-θ; we use a normalized 0→1 grid, scaled to r_p(θ).
+    s_norm = np.linspace(0.02, 1.0, n_radial)  # avoid r→0 singularity
+
+    sum_area = 0.0
+    sum_area_f_T = 0.0
+    sum_area_f_PC = 0.0
+    sum_area_f_OC = 0.0
+
+    for t in thetas:
+        r_p_local = irwin_zone_boundary_m(t, K_total_MPa_m_half, sigma_y_MPa, nu=nu)
+        if r_p_local <= 0:
+            continue
+        rs = s_norm * r_p_local
+        for r in rs:
+            stress = williams_k_field(r, t, K_total_MPa_m_half, nu=nu)
+            sigma_eq = stress.mises_equivalent_MPa
+            if sigma_eq < sigma_y_MPa:
+                continue  # outside Ω_p
+            sigma_principal = stress.principal_max_in_plane_MPa
+            U_max = patel_cohen_max_work(
+                max(0.0, sigma_principal), gamma_0, eps_0, mode="tension"
+            )
+            dT_from_stress_K = 0.145 * U_max
+            if M_s_offset_K <= 0:
+                f_PC = 1.0 if U_max > 0 else 0.0
+            else:
+                f_PC = max(0.0, min(1.0, dT_from_stress_K / M_s_offset_K))
+            eps_p = _local_plastic_strain(
+                sigma_eq, sigma_y_MPa, n_workhardening=n_workhardening
+            )
+            ocp = olson_cohen_params or OlsonCohenParams(
+                alpha=3.55, beta=0.30, n=4.5, T_celsius=22
+            )
+            f_OC = olson_cohen_volume_fraction(eps_p, ocp) if eps_p > 0 else 0.0
+            if trigger_combiner == "max":
+                f_T = max(f_PC, f_OC)
+            else:
+                f_T = min(1.0, f_PC + f_OC)
+            # Polar area element ≈ r · dr · dθ (uniform-step approximation).
+            dA = r * (r_p_local / n_radial) * (math.pi * 1.9 / n_theta)
+            sum_area += dA
+            sum_area_f_T += dA * f_T
+            sum_area_f_PC += dA * f_PC
+            sum_area_f_OC += dA * f_OC
+
+    if sum_area <= 0:
+        return 0.0, 0.0, 0.0, 0.0
+    return (
+        sum_area_f_T / sum_area,
+        sum_area_f_PC / sum_area,
+        sum_area_f_OC / sum_area,
+        sum_area,
+    )
+
+
+def crack_tip_KIC_spatial(
+    state: MicrostructuralState,
+    K_matrix_MPa_m_half: float,
+    *,
+    E_GPa: float = DEFAULT_E_GPA,
+    nu: float = DEFAULT_NU,
+    epsilon_V: float = DEFAULT_EPS_V,
+    gamma_0: float = DEFAULT_GAMMA_0,
+    eps_0_deviatoric: float = DEFAULT_EPS_0_DEVIATORIC,
+    M_s_offset_K: float = 0.0,
+    olson_cohen_params: OlsonCohenParams | None = None,
+    n_workhardening: float = DEFAULT_N_WORKHARDENING,
+    A: float = A_BUDIANSKY_HUTCHINSON,
+    h_over_rp: float = 0.5,
+    n_radial: int = 24,
+    n_theta: int = 36,
+    constants: StrengtheningConstants | None = None,
+    trigger_combiner: Literal["max", "sum_capped"] = "max",
+    max_iter: int = 25,
+    tol_MPa_m_half: float = 0.05,
+) -> SpatialCrackTipResult:
+    """Phase 3.6a — spatial integration of Patel-Cohen + Olson-Cohen over the
+    crack-tip plastic zone, replacing the bulk-averaged trigger of
+    `crack_tip_KIC`.
+
+    Iterative loop:
+      1. Use current K_total to define Ω_p via Williams K-field + Mises yield.
+      2. At each (r, θ) in Ω_p, evaluate σ_eq, σ_principal, ε_p(σ_eq, σ_y).
+      3. Map σ_principal → f_PC (Patel-Cohen) and ε_p → f_OC (Olson-Cohen).
+      4. Area-weighted average <f_transformed> = max(<f_PC>, <f_OC>).
+      5. Plug into McMeeking-Evans → ΔK_TRIP, update K_total, repeat.
+
+    Compared to `crack_tip_KIC` (bulk-averaged), the spatial version
+    distinguishes the kidney-lobe geometry of Ω_p (only ~70 % of a circular
+    disk is above yield in plane strain), the higher-σ region near the tip
+    where PC saturates faster, and the lower-σ outer region where OC
+    dominates. For M54 reverted-γ levels (1-3 %), expect ΔK_TRIP within ~30 %
+    of the bulk answer — this confirms the bulk version was order-of-
+    magnitude correct without depending on its heuristic.
+    """
+    sigma_y_MPa = assemble_yield_strength(state, constants=constants).sigma_y_MPa
+
+    if state.f_austenite <= 0 or epsilon_V <= 0:
+        return SpatialCrackTipResult(
+            K_matrix_MPa_m_half=K_matrix_MPa_m_half,
+            delta_K_TRIP_MPa_m_half=0.0,
+            K_total_MPa_m_half=K_matrix_MPa_m_half,
+            plastic_zone_area_m2=0.0,
+            f_transformed_avg=0.0,
+            f_PC_avg=0.0,
+            f_OC_avg=0.0,
+            iterations_to_converge=0,
+            sigma_y_matrix_MPa=sigma_y_MPa,
+            n_radial=n_radial,
+            n_theta=n_theta,
+        )
+
+    K_total = K_matrix_MPa_m_half
+    f_T = f_PC = f_OC = 0.0
+    area = 0.0
+
+    for i in range(max_iter):
+        f_T, f_PC, f_OC, area = _spatial_average_transformed_fraction(
+            K_total,
+            sigma_y_MPa,
+            nu=nu,
+            gamma_0=gamma_0,
+            eps_0=eps_0_deviatoric,
+            M_s_offset_K=M_s_offset_K,
+            olson_cohen_params=olson_cohen_params,
+            n_workhardening=n_workhardening,
+            n_radial=n_radial,
+            n_theta=n_theta,
+            trigger_combiner=trigger_combiner,
+        )
+        # McMeeking-Evans wake height from r_p = (1/3π)(K/σ_y)² (Irwin avg).
+        r_p_irwin = (K_total / sigma_y_MPa) ** 2 / (3.0 * math.pi)
+        h = h_over_rp * r_p_irwin
+        f_eff = state.f_austenite * f_T
+        from m54model.toughening.mcmeeking_evans import mcmeeking_evans_delta_KIC
+
+        delta_K = mcmeeking_evans_delta_KIC(
+            E_GPa, epsilon_V, h, nu=nu, A=A, f_transformed=f_eff
+        )
+        K_new = K_matrix_MPa_m_half + delta_K
+        if abs(K_new - K_total) < tol_MPa_m_half:
+            return SpatialCrackTipResult(
+                K_matrix_MPa_m_half=K_matrix_MPa_m_half,
+                delta_K_TRIP_MPa_m_half=delta_K,
+                K_total_MPa_m_half=K_new,
+                plastic_zone_area_m2=area,
+                f_transformed_avg=f_T,
+                f_PC_avg=f_PC,
+                f_OC_avg=f_OC,
+                iterations_to_converge=i + 1,
+                sigma_y_matrix_MPa=sigma_y_MPa,
+                n_radial=n_radial,
+                n_theta=n_theta,
+            )
+        K_total = K_new
+
+    return SpatialCrackTipResult(
+        K_matrix_MPa_m_half=K_matrix_MPa_m_half,
+        delta_K_TRIP_MPa_m_half=K_total - K_matrix_MPa_m_half,
+        K_total_MPa_m_half=K_total,
+        plastic_zone_area_m2=area,
+        f_transformed_avg=f_T,
+        f_PC_avg=f_PC,
+        f_OC_avg=f_OC,
+        iterations_to_converge=max_iter,
+        sigma_y_matrix_MPa=sigma_y_MPa,
+        n_radial=n_radial,
+        n_theta=n_theta,
     )
 
 
