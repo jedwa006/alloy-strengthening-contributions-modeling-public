@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.6d: cw/cr state factory `m54_af_t516_10_cw(cw_pct, location)` predicts σ<sub>y</sub> at each CR using user-measured GND + f<sub>A</sub>. Vs measured tensile: **+9 %** at 0 % CR, **−16 %** at 60 % CR. Direction is right (σ<sub>y</sub> rises with CR), magnitude under by ~300 MPa at 60 % — three plausible missing physics flagged (SSDs on top of GND, sub-block HP, mechanical aging). Plus chore: README + FINDINGS now use real `<sub>` / `<sup>` instead of underscored sci-text.
+> **Last updated:** 2026-05-12 — Phase 3.6e: SSD multiplier on top of GND, lit-reviewed (no published GND/SSD partition for cold-worked martensitic UHSS in our refs). Sweep: k=2.5 closes 60 % CR gap to <1 % but blows 0 % CR over-prediction up — one knob can't fix both ends. The 0 % CR issue is a separate block-size / cross-rolled-prior problem; the 60 % gap needs SSD + sub-block HP. Phase 3.6f (sub-block HP) next; XRD-WH on the user's existing spectra is the proper k-calibration anchor (deferred Phase 3.6e+).
 
 ## Status
 
