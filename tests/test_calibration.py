@@ -13,16 +13,16 @@ wt% C in solid solution). The same K calibrates both DQ and AF without
 retuning, which is encouraging.
 """
 
-import pytest
-
 from m54model.alloys.ferrium_m54 import (
     SUN_2022_AF550_45,
+    SUN_2022_AF550_45_T425_10,
     SUN_2022_DQ,
     SUN_2022_DQ_T516_10,
 )
 from m54model.calibration import (
     evaluate_against_anchor,
     sun_2022_af550_45,
+    sun_2022_af550_45_t425_10,
     sun_2022_dq,
     sun_2022_dq_t516_10,
 )
@@ -60,6 +60,8 @@ def test_strategy_choice_matters_on_tempered() -> None:
     assert r_lin.predicted_YS_MPa > r_dp.predicted_YS_MPa
 
 
-@pytest.mark.skip(reason="AF + T425/10 anchor needs Phase 2 ausforming-tempering kinetics.")
 def test_af550_45_t425_10_passes_within_5pct() -> None:
-    pass  # Phase 2
+    """Phase 2 anchor: ausformed AF550/45 + tempered T425/10. M2C population
+    predicted from Cho 2015 → M54 transferred kinetics."""
+    report = evaluate_against_anchor(sun_2022_af550_45_t425_10(), SUN_2022_AF550_45_T425_10)
+    assert report.passes_calibration, repr(report)

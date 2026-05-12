@@ -430,15 +430,32 @@ lath-effects) rather than a per-state empirical fudge. Approaches 2 (lath-spacin
 HP) and 3 (Galindo-Nava hierarchical) remain available if K turns out to be
 composition-dependent in future alloy variants.
 
-### Phase 2 — ausforming + tempering (Weeks 3–4)
+### Phase 2 — ausforming + tempering (COMPLETE)
 
-- [x] ~~Add intrinsic-martensite term~~ — done in Phase 1.6 (3/4 anchors PASS)
-- [ ] Implement `kinetics/{jma, transferred}` with Cho 2015 → M54 transfer
-- [ ] Implement `precipitates/{m2c, mc}` with full kinetics integration
-- [ ] Add `ausform()` to processing path (Sun 2022's AF550/45 + T425/10 condition)
-- [ ] Build M2C population estimator at AF + T425/10 from Cho-transferred kinetics
-- [ ] Calibrate against Sun 2022 AF550/45 + T425/10 (anchor 4)
-- [ ] **Gate**: all 4 calibration anchors within ±5 %
+- [x] Add intrinsic-martensite term — done in Phase 1.6 (3/4 anchors PASS)
+- [x] Implement `kinetics/{jma, lsw, m2c}` with Cho 2015 → M54 transfer
+- [x] Build M2C population estimator at AF + T425/10 from Cho-transferred
+      kinetics with Arrhenius scaling + LSW coarsening
+- [x] M54 vs Cho stoichiometry V_f scaling (0.81) for AF state
+- [x] Calibrate against Sun 2022 AF550/45 + T425/10 (anchor 4): **PASS at +1.3 %**
+- [x] **Gate (achieved): all 4 Sun 2022 calibration anchors within ±5 %**
+
+  | Anchor | Predicted | Measured | Miss |
+  |--------|----------:|---------:|-----:|
+  | DQ                  | 1419 | 1420 | -0.1 % |
+  | DQ + T516/10        | 1675 | 1762 | -4.9 % |
+  | AF550/45            | 1864 | 1830 | +1.9 % |
+  | AF550/45 + T425/10  | 1748 | 1726 | +1.3 % |
+
+  Bias caught: model predicts AF+T > DQ+T (+73 MPa) but Sun measures AF+T <
+  DQ+T (-36 MPa). 109 MPa direction-of-effect mismatch tracked in
+  FINDINGS.md §5 — likely Orowan formula sensitivity to M2C r vs L regime.
+
+  Deferred to Phase 2.5/3:
+  - `processing/temper.py` and `processing/ausform.py` as transformations on
+    states (currently kinetics are called from anchor factories directly)
+  - MC carbide Orowan contribution (Wang notes 30-90 MPa under-prediction
+    attributed to MC; we under-predict DQ+T by 87 MPa)
 
 ### Phase 3 — TRIP toughening (Weeks 5–6)
 

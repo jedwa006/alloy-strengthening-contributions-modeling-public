@@ -212,8 +212,28 @@ specific microstructural condition with a measured YS we try to reproduce.
 ### Anchor 4 — Sun 2022 AF550/45 + T425/10 (enhanced commercial route)
 
 - **Anchor YS = 1726 MPa.**
-- **Predicted = (Phase 2)** — needs Cho 2015 → M54 ausforming-accelerated M2C
-  kinetics to estimate the AF+T425/10 M2C population.
+- **Predicted = 1748 MPa (+1.3 %).** PASS. `[Phase 2]`
+- **First-pass result was +5.3 % over** using Cho's H600 V_f saturation
+  (0.0040) directly. The fix was a composition-stoichiometry argument:
+  Cho's 13Co-8Ni alloy has 5.4 wt% total M2C-formers (Cr 3.89 + Mo 1.49); M54
+  has 4.4 wt% (Cr 1.0 + Mo 2.0 + W 1.3 + V 0.1). Ratio: **0.81**. Applying
+  V_f_M54 = 0.81 × V_f_Cho closes the anchor to +1.3 %.
+- **Predicted M2C population at AF + T425/10 (kinetics-derived):**
+  - r_eq = 1.80 nm (LSW-coarsened from Cho's peak r=1.52 nm using
+    Q_coarsen=177 kJ/mol Arrhenius-scaled to 425 °C)
+  - V_f = 0.0032 (M54-stoich-scaled from Cho 0.0040)
+  - N = 1.32 × 10²³ m⁻³
+  - L = 19.6 nm
+- **Decomposition:** σ_0=50, σ_ss=195, σ_HP(d=0.48)=332, σ_ρ(1.18e15)=261,
+  σ_intr=0, σ_M2C=910. **Total = 1748.**
+- **Compare to DQ + T516/10:** AF+T predicts 1748 vs DQ+T 1675 — AF route is
+  73 MPa stronger. Sun 2022 measured: AF+T 1726 vs DQ+T 1762 — AF route is
+  36 MPa **weaker**. Direction-disagreement of 36 MPa! This is a **subtle bias**
+  in our model worth tracking. Likely source: AF+T425/10 has
+  smaller-but-more-numerous M2C (vs DQ+T516/10's larger-fewer M2C), and our
+  Orowan formula favors the small-dense regime more than experiment suggests.
+  Worth investigating with sensitivity analysis on r vs L when more anchor
+  data is available.
 
 ---
 
@@ -265,10 +285,12 @@ Things we know are wrong or missing, deliberately deferred:
 | Fleischer β for W, V, C, Ti are placeholders | unknown | likely small (<5 % on DQ; negligible elsewhere) | TODO in `constants.py` |
 | MC carbide Orowan contribution not computed | under-predicts | 30-90 MPa on DQ + T (per Wang 2024) | TODO in `orowan.py` |
 | Lath-HP enhancement above block-HP not modeled | under-predicts in untempered (compensated by intrinsic term) | unknown — currently absorbed into K=985 | Galindo-Nava option in MODEL_PLAN |
-| AF + T M2C population requires Cho-2015 transfer | n/a (anchor 4 not yet computable) | n/a | Phase 2 |
+| **AF+T predicts > DQ+T but Sun measures AF+T < DQ+T** | **direction-of-effect** | model says AF wins by 73 MPa, exp says DQ wins by 36 MPa — total mismatch ~109 MPa | `[Phase 2]` — see anchor 4 §3 |
 | Reverted-vs-retained austenite not decomposed | n/a (uses total f_A) | small for YS, larger implications for TRIP | Phase 3 |
-| Carbon-in-solution depletion at temper hardcoded at 99 % | small | plausibly ±20 MPa | will be replaced by real M2C kinetics in Phase 2 |
+| Carbon-in-solution depletion at temper hardcoded at 99 % | small | plausibly ±20 MPa | should derive from M2C V_f balance |
 | Block size doesn't change with tempering | OK to first order (Wang 2024 confirms) | none | n/a |
+| K_LSW for M2C in M54 is order-of-magnitude estimate (5e-31 m³/s) | unknown direction | could shift r at peak by 30 % | TODO in `kinetics/m2c.py` |
+| AF state V_f saturation calibrated via 0.81 stoichiometry scale | calibrated to anchor 4 | tunable knob, uncertainty propagates | `[Phase 2]` |
 
 ---
 
@@ -300,9 +322,22 @@ Things we know are wrong or missing, deliberately deferred:
 - **Result:** all three baseline anchors PASS within ±5 %. Same K calibrates
   DQ and AF without retuning.
 
-### Phase 2 (in progress)
-- Build M2C kinetics (JMA Avrami) and Cho-transferred ausforming accelerator.
-- Add the AF + T425/10 anchor.
+### Phase 2 — Tempering kinetics + AF anchor (complete)
+- M2C kinetics modules (`kinetics/{jma, lsw, m2c}`).
+- Wang 2024 baseline for DQ tempering, Cho 2015 H600 baseline for AF tempering.
+- Arrhenius scaling on rate constants from each paper's reference temperature.
+- LSW coarsening past peak.
+- M54 vs Cho stoichiometry V_f scaling (0.81) — closed AF+T anchor from +5.3 %
+  to +1.3 %.
+- **All 4 Sun 2022 anchors PASS within ±5 %.** Best fit: AF+T at +1.3 %.
+- **Direction-of-effect bias caught:** model predicts AF+T > DQ+T by 73 MPa,
+  but Sun measures AF+T < DQ+T by 36 MPa. Tracked in §5.
+
+### Phase 3 (next)
+- TRIP toughening submodel (Patel-Cohen + Olson-Cohen).
+- Calibrate Olson-Cohen α(T), β(T) against the user's 0/20/40/60 % cw/cr
+  austenite-content data.
+- Validate K_IC against Mondière's 110 MPa·m^(1/2) anchor.
 
 ---
 

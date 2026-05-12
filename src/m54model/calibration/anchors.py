@@ -8,6 +8,7 @@ paper's reported YS.
 from __future__ import annotations
 
 from m54model.alloys import FERRIUM_M54
+from m54model.kinetics import m2c_population_af_tempered
 from m54model.precipitates import PrecipitatePopulation
 from m54model.states import MicrostructuralState
 
@@ -116,5 +117,27 @@ def sun_2022_af550_45() -> MicrostructuralState:
     )
 
 
-# AF550/45 + T425/10 is deferred to Phase 2 — needs the Cho 2015 → M54 kinetics
-# transfer to estimate the M2C population at 425 °C/10 h after ausforming.
+def sun_2022_af550_45_t425_10() -> MicrostructuralState:
+    """Sun 2022 enhanced commercial route: AF550/45 then 425 °C / 10 h temper.
+    Anchor: YS = 1726 MPa.
+
+    Microstructure inputs from Sun 2022 measurements (block, dislocation
+    density, lath). M2C population is **predicted** from Cho 2015 → M54
+    transferred kinetics via `m2c_population_af_tempered(425, 10)` —
+    Sun 2022 did not characterize M2C in this state, so this is the first
+    quantitative estimate.
+    """
+    m2c = m2c_population_af_tempered(T_celsius=425.0, t_hours=10.0)
+    return MicrostructuralState(
+        state="af_tempered",
+        block_width_um=0.48,  # ausforming refines from 1.18 to 0.48 µm
+        packet_size_um=6.7,
+        pag_width_um=47.0,
+        lath_width_nm=135.0,
+        dislocation_density_per_m2=1.18e15,  # post-temper recovered to ~DQ+T levels
+        f_austenite=0.0,
+        matrix_at_frac=_matrix_tempered(),
+        wt_pct_C_in_solution=0.003,  # tempered — C consumed by M2C
+        precipitates=[m2c],
+        label="Sun 2022 AF550/45 + T425/10",
+    )
