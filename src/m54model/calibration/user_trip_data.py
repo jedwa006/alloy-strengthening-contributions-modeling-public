@@ -113,9 +113,7 @@ def is_monotonic_decreasing(data: Sequence[CWAustenitePoint]) -> bool:
     f_A jumps up at 40 % CR. Use this to pick a fittable subset.
     """
     pts = sorted(data, key=lambda p: p.cw_pct)
-    return all(
-        b.f_austenite <= a.f_austenite + 1e-6 for a, b in zip(pts, pts[1:], strict=True)
-    )
+    return all(b.f_austenite <= a.f_austenite + 1e-6 for a, b in zip(pts, pts[1:], strict=True))
 
 
 def m54_olson_cohen_fit_from_user_data(
