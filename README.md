@@ -19,6 +19,9 @@ See [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) for the full architecture and
 [`docs/FINDINGS.md`](docs/FINDINGS.md) for the running insights log. For a
 step-back synthesis of where the predictions come from and what the
 residuals actually tell us, see [`docs/EVALUATION_M54_MODEL_v1.md`](docs/EVALUATION_M54_MODEL_v1.md).
+For the cw/cr-specific analysis (per-CR contribution audit + tunability
+ranking + Olson-Cohen vs Patel-Cohen fit assessment), see
+[`docs/CW_CR_STRENGTHENING_ANALYSIS.md`](docs/CW_CR_STRENGTHENING_ANALYSIS.md).
 
 ## Interactive notebooks (browse-without-cloning)
 
