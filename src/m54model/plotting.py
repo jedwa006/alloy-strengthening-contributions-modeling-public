@@ -85,11 +85,12 @@ def plot_contributions(
             label="measured YS",
         )
 
-    # Annotate predicted total above each bar
+    # Annotate predicted total above each bar. Keep annotations close to the
+    # bar top (offset 15 MPa) so they don't compete with the title.
     for i, r in enumerate(reports):
         ax.text(
             i,
-            bottoms[i] + 30,
+            bottoms[i] + 15,
             f"{r.predicted_YS_MPa:.0f}\n({r.miss_pct:+.1f} %)",
             ha="center",
             va="bottom",
@@ -102,9 +103,12 @@ def plot_contributions(
         fontsize=9,
     )
     ax.set_ylabel("Yield strength contribution (MPa)")
-    ax.set_title("Strengthening contributions vs Sun 2022 anchors")
+    ax.set_title("Strengthening contributions vs Sun 2022 anchors", pad=15)
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1.0), fontsize=9)
     ax.grid(axis="y", linestyle=":", alpha=0.5)
+    # Headroom: 18 % above tallest bar so annotations clear the title.
+    y_max = max(bottoms.max(), max(r.measured_YS_MPa for r in reports))
+    ax.set_ylim(0, y_max * 1.18)
     fig.tight_layout()
     return fig
 
@@ -146,10 +150,11 @@ def plot_anchor_dashboard(
         fontsize=9,
     )
     ax.set_ylabel("Yield strength (MPa)")
-    ax.set_title("Calibration anchors — predicted vs measured")
-    ax.legend(loc="lower right", fontsize=9)
+    ax.set_title("Calibration anchors — predicted vs measured", pad=12)
+    ax.legend(loc="upper left", fontsize=9)
     ax.grid(axis="y", linestyle=":", alpha=0.5)
-    ax.set_ylim(0, max(pred.max(), meas.max()) * 1.15)
+    # 22 % headroom so the miss-% labels and title both have room.
+    ax.set_ylim(0, max(pred.max(), meas.max()) * 1.22)
     fig.tight_layout()
     return fig
 
