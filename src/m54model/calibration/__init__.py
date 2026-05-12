@@ -19,6 +19,17 @@ from m54model.calibration.sweep import (
     evaluate_against_anchor,
     sweep_beta_c,
 )
+from m54model.calibration.user_mechanical_data import (
+    USER_M54_NANOINDENTATION,
+    USER_M54_TENSILE,
+    USER_M54_TOUGHNESS,
+    NanoindentationZone,
+    TensilePoint,
+    ToughnessPoint,
+    nanoindent_for_cr,
+    tensile_for_cr,
+    toughness_for_cr,
+)
 from m54model.calibration.user_microstructure_data import (
     USER_M54_GND_DENSITY,
     USER_M54_GRAIN_SIZE,
@@ -66,4 +77,13 @@ __all__ = [
     "EPS_DOT_SUN_2022_S_INV",
     "EPS_DOT_USER_TENSILE_S_INV",
     "M_TEMPERED_M54_DEFAULT",
+    "USER_M54_TENSILE",
+    "USER_M54_TOUGHNESS",
+    "USER_M54_NANOINDENTATION",
+    "TensilePoint",
+    "ToughnessPoint",
+    "NanoindentationZone",
+    "tensile_for_cr",
+    "toughness_for_cr",
+    "nanoindent_for_cr",
 ]

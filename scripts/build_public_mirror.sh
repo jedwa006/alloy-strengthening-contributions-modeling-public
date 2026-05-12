@@ -58,6 +58,8 @@ git filter-repo --force \
     --path-regex '^reference docs/.*\.pdf$' \
     --path-regex '^\.github/workflows/.*\.ya?ml$' \
     --path-regex '^data/xrd/experimental/.*$' \
+    --path-regex '^data/nanoindentation/experimental/.*$' \
+    --path-regex '^data/tensile/experimental/.*$' \
     --invert-paths
 
 # Verify the filter worked: no PDFs in any commit.

@@ -777,6 +777,97 @@ Captured in `tests/test_williams_field.py` (8 tests) and
 `tests/test_crack_tip_spatial.py` (7 tests), and notebook 03 §4 with the
 bulk-vs-spatial table, kidney-lobe polar plot, and σ_yy / σ_eq heat-maps.
 
+### Phase 3.6d-prep — User's mechanical-data trove captured `[Phase 3.6d-prep]`
+
+User shared four datasets (visible-values from a draft + raw workbooks):
+
+1. **Bulk tensile** at 0 / 47 / 53 / 60 % CR (ε̇ ≈ 1e-1 s⁻¹). 20 % and 40 %
+   tensile not yet measured (cw/cr ASTAR exists for these though).
+2. **Nanoindentation** depth profiles (5 zones × 4 CR) of H and reduced
+   modulus E_r — already captured numerically in `USER_M54_NANOINDENTATION`.
+3. **Toughness** (slide chart, units assumed MPa·m^½ pending user
+   confirmation that "MPa/m²" on the slide is a notation typo).
+4. **Mill-load + surface hardness** vs skin-pass count (qualitative for
+   now; raw data available on request).
+
+Captured in:
+- `m54model.calibration.user_mechanical_data` — frozen dataclasses for
+  tensile, toughness, nanoindentation; lookup helpers `tensile_for_cr`,
+  `toughness_for_cr`, `nanoindent_for_cr`.
+- `m54model.calibration.data_loaders` — lazy openpyxl loaders for the
+  raw workbooks copied into `data/{nanoindentation,xrd}/experimental/`
+  (private; excluded from public mirror).
+
+**First model-vs-measurement check at the 0 % CR baseline:**
+
+|                                  | Value        |
+|----------------------------------|-------------:|
+| Model quasi-static σ_y           | 1373 MPa     |
+| Model at user's 1e-1 s⁻¹ rate    | 1448 MPa     |
+| Measured σ_0.2 (user, 1e-1 s⁻¹)  | 1300 ± 30 MPa|
+| Miss                             | **+11.4 %**  |
+
+**Direction:** model OVER-predicts by ~150 MPa at the baseline — outside
+the ±5 % anchor pass band. Two natural candidates:
+
+1. The `m54_af550_45_t516_10()` factory uses Sun's AF block size
+   (0.48 µm), but the user's actual prior history is **cross-rolled** AF
+   then 516/10 — likely a coarser equivalent block than simple uniaxial AF.
+   A 10-15 % larger block would cut σ_HP by 50-80 MPa.
+2. The intrinsic-martensite term (K = 985, sqrt(C in solution)) was fit
+   on Sun's DQ anchor; the cross-rolled-AF prior may have driven C below
+   the assumed 0.003 wt% via M2C-precipitation acceleration.
+
+**Other observations from the data:**
+
+- **Toughness DOUBLES with 60 % CR** (219 → 434 MPa·m^½). Counter to the
+  CW-embrittles narrative; aligns with Sun 2022's finding that
+  ausforming + temper improves toughness over DQ + temper despite higher
+  σ_y. The model's Phase 3.6a spatial K_IC predicts ΔK_TRIP ≪ 1 MPa·m^½
+  from M54 reverted-γ levels — so the toughness rise is matrix-driven
+  (refined block, dislocation-accommodated cracking), not TRIP-driven.
+- **60 % CR has BOTH highest σ_y AND highest EL (20 %)** — opposite of
+  classical CW. Likely consequence of (a) the surface-localized hardness
+  gradient (8.0 → 7.2 GPa surface-to-core) creating a strain-hardening-
+  reservoir core and (b) the dispersed micro-bands acting as TRIP-style
+  energy absorbers.
+- **Nanoindent E_r dip at 40 % CR** (250 → 207 GPa) tracks the ASTAR
+  austenite-spike CR % qualitatively, but the magnitude is inconsistent
+  with γ vs α′ moduli alone (both ~200-220 GPa). Likely also reflects
+  damage accumulation (microcrack/pileup density). The 60 % rebound to
+  ~261 GPa is consistent with shear-band-network densification.
+- **Tabor σ_y ≈ H/3** gives 2267 MPa at 0 % CR vs measured σ_y = 1300 —
+  off by 70 %. But H/3 ≈ 2267 is extremely close to the measured **UTS**
+  of 2100 MPa (within 8 %). For these alloys H tracks UTS more than
+  YS — common for tempered martensitic UHSS where indentation deforms
+  past the elastic-plastic transition. Worth using H as a surrogate for
+  UTS, NOT YS, when comparing depth profiles to bulk tensile.
+
+**Phase 3.6d work to do (when ready):**
+
+- Add a `m54_af_t516_10_cw{N}()` state-factory family that swaps in the
+  user's measured `USER_M54_GRAIN_SIZE`, `USER_M54_GND_DENSITY`, and
+  `USER_M54_CW_AUSTENITE_SURFACE` for each CR condition.
+- Validate the predicted σ_y(CR) against the tensile points; check that
+  the work-hardening exponent (UTS/σ_y) trend is captured.
+- Use the spatial K_IC (Phase 3.6a) with the cw/cr-specific f_A to
+  predict the toughness sweep against the four K_IC values.
+- Fit the strain-rate exponent m from any rate-jump tensile data (if
+  collected).
+
+**What additional file formats would help most** (to fully validate
+without further visible-value transcription):
+
+- Tensile engineering stress-strain curves (CSV or Origin export, one
+  file per (cw_pct, replicate)). Columns: strain, stress, optionally
+  extension and load.
+- Nanoindentation per-indent (xy position, depth profile, H, Er,
+  uncertainty) — already loaded from `data/nanoindentation/experimental/`.
+- Raw K_IC test outputs (load-displacement or J-R curves) so we can
+  separate K_initiation from K_steady.
+- Mill-load + surface-hardness CSV (kips per pass + HRC after each
+  intermediate sample extraction).
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single

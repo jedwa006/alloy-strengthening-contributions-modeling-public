@@ -7,14 +7,17 @@ validation. Organized by data-collection technique.
 
 ```
 data/
-└── xrd/
-    └── experimental/         Raw XRD spectra (private — not synced to public mirror)
+├── xrd/
+│   └── experimental/         Raw XRD spectra workbooks (private)
+├── nanoindentation/
+│   └── experimental/         H + Er depth profiles (private)
+└── tensile/
+    └── experimental/         Stress-strain curves + Charpy/K_IC outputs (private)
 ```
 
 Other planned subfolders (when relevant data lands):
 - `data/xrd/derived/`         Processed / fitted spectra, peak tables (synced)
 - `data/astar/`               ASTAR phase-fraction + GND maps (raw vs derived split TBD)
-- `data/tensile/`             Stress-strain curves
 - `data/hardness/`            HV / HRC measurements
 
 ## Public-mirror policy
@@ -23,7 +26,9 @@ Like `pdf-archive/` and `reference docs/`, certain subfolders here are
 **excluded from the public mirror** because they are large raw source files
 of the user's experimental work. Specifically:
 
-- `data/xrd/experimental/` — excluded (`scripts/build_public_mirror.sh` regex)
+- `data/xrd/experimental/`             — excluded
+- `data/nanoindentation/experimental/` — excluded
+- `data/tensile/experimental/`         — excluded
 
 Derived analyses, plots, summary tables, and code that **uses** the data
 ARE synced to the public mirror. Just not the raw source files.
