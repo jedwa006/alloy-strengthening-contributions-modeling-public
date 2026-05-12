@@ -43,10 +43,16 @@ git remote remove origin || true
 # rather than glob because git-filter-repo's --path-glob uses fnmatch where
 # '**' doesn't cross directory separators reliably; regex catches everything
 # below `reference docs/` at any depth.
+#
+# Why .github/workflows/ is excluded: the sync workflow is a tool of the
+# private repo, not project content. Including it in the public mirror would
+# require giving the sync PAT the `workflow` scope, which is broader than
+# needed (the PAT only ever needs to write to the mirror's contents).
 echo "==> Rewriting history to remove private content"
 git filter-repo --force \
     --path-regex '^pdf-archive/.*\.pdf$' \
     --path-regex '^reference docs/.*\.pdf$' \
+    --path-regex '^\.github/workflows/.*\.ya?ml$' \
     --invert-paths
 
 # Verify the filter worked: no PDFs in any commit.
