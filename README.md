@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.6a complete: Williams K-field + polar PC/OC integration over the kidney-shaped Mises Ω_p replaces the bulk-averaged trigger. Bulk vs spatial agree at M_s_offset = 0 (both saturate); spatial is +70-90 % higher under realistic offsets (50-100 K) because it captures the high-σ near-tip region. Qualitative finding survives: ΔK_TRIP < 1 MPa·m^½ at M54's 1.3 % f_A; Mondière 110 is essentially all bare matrix.
+> **Last updated:** 2026-05-12 — Phase 3.6d-prep: user's tensile + toughness + nanoindentation + XRD trove captured. First model-vs-measurement at 0 % CR baseline shows model over-predicts σ_y by +11 % (1448 vs 1300 ± 30 MPa) — likely the cross-rolled prior history vs simple-AF assumption. Toughness DOUBLES (219 → 434 MPa·m^½) from baseline to 60 % CR; 60 % CR also has highest σ_y AND highest ductility (20 %), inverting the classical CW trade-off. Phase 3.6a (spatial K_IC) result holds: matrix dominates, TRIP < 1 MPa·m^½.
 
 ## Status
 
