@@ -457,11 +457,25 @@ composition-dependent in future alloy variants.
   - MC carbide Orowan contribution (Wang notes 30-90 MPa under-prediction
     attributed to MC; we under-predict DQ+T by 87 MPa)
 
-### Phase 3 — TRIP toughening (Weeks 5–6)
+### Phase 3 v1 — TRIP submodel equations (COMPLETE)
 
-- [ ] Implement `toughening/{patel_cohen, olson_cohen, crack_tip}`
-- [ ] Add `f_A` reverted-austenite term to strengthening rule-of-mixtures
-- [ ] Validate K_IC against Mondière 110 MPa·m^(1/2) anchor
+- [x] Implement `toughening/patel_cohen` (PC Table I tension slope reproduced
+      exactly at +1.07 °C/ksi)
+- [x] Implement `toughening/olson_cohen` (Angel 304 SS curves reproduced)
+- [x] Build `fit_olson_cohen` for (α, β) calibration
+- [x] Set up `calibration/user_trip_data` for the user's 0/20/40/60 % cw/cr
+      austenite measurements (placeholder values — drop in real data)
+- [x] f_A reverted-austenite term in rule-of-mixtures (already done in Phase 1.6)
+- [x] 10 validation tests (24 total passing)
+
+### Phase 3.5 — Crack-tip K_IC integration
+
+- [ ] Implement `toughening/crack_tip.py` — HRR or calibrated effective-stress
+      proxy for crack-tip stress + strain field
+- [ ] Apply Patel-Cohen for stress-assisted regime + Olson-Cohen for strain-
+      induced regime per material point in plastic zone
+- [ ] Sum transformed α′ volume → compressive residual stress → ΔK_IC
+- [ ] Validate against Mondière K_IC = 110 MPa·m^(1/2) anchor
 
 ### Phase 4 — interactive layer (Weeks 7–8)
 
