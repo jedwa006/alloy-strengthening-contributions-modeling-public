@@ -9,7 +9,15 @@ deferred to Phase 3.5.
 from m54model.toughening.crack_tip import (
     CrackTipResult,
     K_matrix_for_target,
+    SpatialCrackTipResult,
     crack_tip_KIC,
+    crack_tip_KIC_spatial,
+)
+from m54model.toughening.williams_field import (
+    StressTensor2D,
+    angular_g_factor,
+    irwin_zone_boundary_m,
+    williams_k_field,
 )
 from m54model.toughening.mcmeeking_evans import (
     A_BUDIANSKY_HUTCHINSON,
@@ -46,4 +54,11 @@ __all__ = [
     "crack_tip_KIC",
     "K_matrix_for_target",
     "CrackTipResult",
+    # Phase 3.6a — spatial K-field integration
+    "crack_tip_KIC_spatial",
+    "SpatialCrackTipResult",
+    "williams_k_field",
+    "StressTensor2D",
+    "angular_g_factor",
+    "irwin_zone_boundary_m",
 ]
