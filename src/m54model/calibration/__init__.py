@@ -2,6 +2,8 @@
 
 from m54model.calibration.anchors import (
     m54_af550_45_t516_10,
+    m54_af_t516_10_cw,
+    predict_cw_cr_sweep,
     sun_2022_af550_45,
     sun_2022_af550_45_t425_10,
     sun_2022_dq,
@@ -58,6 +60,8 @@ __all__ = [
     "evaluate_against_anchor",
     "sweep_beta_c",
     "m54_af550_45_t516_10",
+    "m54_af_t516_10_cw",
+    "predict_cw_cr_sweep",
     "USER_M54_CW_AUSTENITE_SURFACE",
     "USER_M54_CW_AUSTENITE_CORE",
     "USER_M54_GRAIN_SIZE",
