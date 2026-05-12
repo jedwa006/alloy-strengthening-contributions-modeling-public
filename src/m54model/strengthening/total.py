@@ -8,13 +8,17 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import Literal
 
 from m54model.constants import (
+    MONDIERE_2025_F_A_SOFTENING_RATE_MPA_PER_PCT,
     SIGMA_AUSTENITE_MPA,
     Convention,
     StrengtheningConstants,
     SummationStrategy,
 )
+
+FACorrectionMode = Literal["rule_of_mix", "mondière_2025"]
 from m54model.states import MicrostructuralState
 from m54model.strengthening.dislocation import sigma_dislocation
 from m54model.strengthening.friction import sigma_friction
@@ -54,6 +58,7 @@ def assemble_yield_strength(
     beta_overrides: dict[str, float] | None = None,
     *,
     orowan_sub_critical: str = "clamp",
+    f_A_correction_mode: FACorrectionMode = "rule_of_mix",
 ) -> StrengtheningResult:
     """Compute YS from a microstructural state.
 
@@ -62,7 +67,29 @@ def assemble_yield_strength(
 
     Returns the decomposition (each contribution kept individually) and the
     summed sigma_y under the chosen strategy. f_austenite drives a separate
-    rule-of-mixtures correction reported as `sigma_y_austenite_corrected_MPa`.
+    correction reported as `sigma_y_austenite_corrected_MPa`.
+
+    `f_A_correction_mode` (Phase 3.7d):
+      - 'rule_of_mix' (default — backwards-compatible): σ_y_corr = (1 - f_A) ·
+        σ_y + f_A · σ_A, with σ_A = SIGMA_AUSTENITE_MPA = 360 (Li 2026 C64).
+        Gives ∂σ_y/∂f_A ≈ −13 MPa per 1 % γ for σ_matrix ≈ 1700 — much
+        shallower than M54's measured rate.
+      - 'mondière_2025': σ_y_corr = σ_y_matrix −
+        MONDIERE_2025_F_A_SOFTENING_RATE_MPA_PER_PCT · (f_A · 100) =
+        σ_y - 6800 · f_A. From Mondière 2025 Eq. 2 (YS = 1978 − 68·γ%
+        on commercial M54). 5× steeper than rule-of-mix because it
+        captures total γ-related softening (volumetric + interface +
+        modulus + lath-boundary effects) as one lumped slope.
+
+        **Caveat — extrapolation regime**: Mondière fit her relation on
+        commercial M54 with γ% in the ~1-10 % range from various
+        tempering schedules. At our user's high-CR core f_A = 12.6 %,
+        applying the −68 MPa/% slope to our predicted σ_matrix (1672
+        MPa) drops σ_y_corr to 815 MPa — **unphysical** vs measured
+        1900 MPa. The relation is a *confounded* empirical observation
+        (γ% co-varies with tempering-history-dependent matrix
+        properties), not a clean f_A-only law. Recommended for cross-
+        check use at f_A ≲ 5 %, NOT as a high-f_A correction.
     """
     c = constants or StrengtheningConstants.from_convention(Convention.SUN)
 
@@ -98,7 +125,18 @@ def assemble_yield_strength(
         raise ValueError(f"unknown strategy {strategy!r}")
 
     f_A = state.f_austenite
-    sigma_y_corrected = (1.0 - f_A) * sigma_y + f_A * SIGMA_AUSTENITE_MPA if f_A > 0 else sigma_y
+    if f_A <= 0:
+        sigma_y_corrected = sigma_y
+    elif f_A_correction_mode == "rule_of_mix":
+        sigma_y_corrected = (1.0 - f_A) * sigma_y + f_A * SIGMA_AUSTENITE_MPA
+    elif f_A_correction_mode == "mondière_2025":
+        # YS = σ_y_matrix − 68 · γ%, with γ% = f_A · 100
+        sigma_y_corrected = max(
+            0.0,
+            sigma_y - MONDIERE_2025_F_A_SOFTENING_RATE_MPA_PER_PCT * (f_A * 100.0),
+        )
+    else:
+        raise ValueError(f"unknown f_A_correction_mode {f_A_correction_mode!r}")
     return StrengtheningResult(
         sigma_y_MPa=sigma_y,
         sigma_y_austenite_corrected_MPa=sigma_y_corrected,

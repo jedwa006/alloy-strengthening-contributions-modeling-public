@@ -24,8 +24,10 @@ from m54model.strengthening.through_thickness import (
     PLATE_THICKNESS_UM_BY_CR,
     ZONE_LABELS,
     ZonePrediction,
+    derive_zone_sigma_y_from_nanoindent,
     interpolate_at_depth,
     microstructure_at_zone,
+    per_zone_predicted_vs_derived_sweep,
     predict_bulk_sigma_y_through_thickness,
     predict_zone_sigma_y,
     through_thickness_sweep,
@@ -65,4 +67,7 @@ __all__ = [
     "ZONE_LABELS",
     "PLATE_THICKNESS_UM_BY_CR",
     "ZonePrediction",
+    # Phase 3.8b — per-zone H inversion
+    "derive_zone_sigma_y_from_nanoindent",
+    "per_zone_predicted_vs_derived_sweep",
 ]

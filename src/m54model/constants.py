@@ -34,7 +34,31 @@ Unused for M54 (no NiAl)."""
 
 SIGMA_AUSTENITE_MPA = 360.0
 """Reverted/retained austenite yield strength used in rule-of-mixtures
-correction. From Li 2026 C64 paper. Only applied when f_A > 0."""
+correction. From Li 2026 C64 paper (different alloy class). Only applied
+when f_A > 0 AND `f_A_correction_mode == "rule_of_mix"` in the assembler.
+
+Empirically gives ∂σ_y/∂f_A ≈ −13 MPa per 1 % γ for σ_matrix ≈ 1700 — much
+shallower than Mondière 2025's M54-specific empirical −68 MPa per 1 % γ.
+The Mondière relation is preferred for M54 (see
+`MONDIERE_2025_F_A_SOFTENING_RATE_MPA_PER_PCT` below) but rule-of-mix is
+kept as the historical default for backwards-compat and for non-M54 use."""
+
+MONDIERE_2025_F_A_SOFTENING_RATE_MPA_PER_PCT = 68.0
+"""M54-specific empirical YS softening rate per 1 % retained austenite,
+from Mondière, Déneux, Binot, Delagnes, J. Mater. Res. Technol. 36, 2074
+-2082 (2025), Eq. 2: YS = 1978 − 68·γ%.
+
+Roughly 5× steeper than the rule-of-mix slope at our matrix yield levels,
+because Mondière's relation captures TOTAL γ-related softening (rule-of-
+mix dilution + interface compliance + lath-boundary embrittlement +
+matrix modulus dilution) as one empirical lump, not just the volumetric
+mix. Use as `f_A_correction_mode = "mondière_2025"` in the assembler."""
+
+MONDIERE_2025_INTERCEPT_MPA = 1978.0
+"""Mondière 2025 Eq. 2 intercept (matrix YS at γ% = 0). Used for
+direct application of YS = 1978 − 68·γ% as a self-contained predictor
+when the model's own σ_matrix prediction is being cross-checked rather
+than used as the matrix anchor."""
 
 K_INTRINSIC_MARTENSITE_MPA_PER_SQRT_WTPCT = 985.0
 """As-quenched intrinsic-martensite strengthening coefficient.

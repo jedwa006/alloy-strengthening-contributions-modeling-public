@@ -1633,6 +1633,108 @@ a citation gap that needs filling.
 Full report at `/tmp/lit_search_phase_3_7.md` (transient — would need
 to be persisted into `docs/` if we want to keep it).
 
+### Phase 3.7d — Mondière 2025 f_A softening mode + caveat `[Phase 3.7d]`
+
+Mondière 2025 (Eq. 2): YS = 1978 − 68·γ% on commercial M54.
+Implemented as an alternative `f_A_correction_mode="mondière_2025"` in
+`assemble_yield_strength`, alongside the default `"rule_of_mix"` mode.
+
+**Behavior comparison at the user's 0 % CR baseline (f_A=0.013):**
+
+| Mode | σ_y_qs | σ_y_corr | Δ from matrix |
+|---|---:|---:|---:|
+| rule_of_mix (σ_A=360) | 1373 | 1360 | −13 |
+| mondière_2025 (slope −68/%) | 1373 | 1285 | −88 |
+
+**Caveat — extrapolation regime**: at f_A=0.126 (60 % CR core), the
+Mondière mode gives σ_y_corr = 1672 − 6800·0.126 = **815 MPa**, well
+below the measured 1900 MPa. The relation is a *confounded* commercial-
+M54 empirical observation (γ% co-varies with tempering-history-dependent
+matrix changes), not a clean f_A-only law. **Recommended for cross-
+check use at f_A ≲ 5 %, NOT as a high-f_A correction.**
+
+Constants: `MONDIERE_2025_F_A_SOFTENING_RATE_MPA_PER_PCT = 68.0`,
+`MONDIERE_2025_INTERCEPT_MPA = 1978.0`. Default mode unchanged
+(rule_of_mix); 4 new tests cover the new mode.
+
+### Phase 3.8b — Per-zone H<sub>composite</sub> inversion → derived σ_y `[Phase 3.8b]`
+
+Inverted Chapter 5 Eq. 1 per zone to derive a "measurement-based" σ_y
+at each (CR, zone), turning the user's 5-zone × 4-CR nanoindent grid
+into 20 σ_y comparison points (vs the 4 bulk tensile points).
+
+Pipeline per zone:
+1. Measured H<sub>composite</sub> from `USER_M54_NANOINDENTATION`
+2. f_A interpolated linearly between surface and core (Phase 3.8a)
+3. Eq. 1 inverted: H<sub>α′</sub> = (H<sub>composite</sub> − f_A·H<sub>γ</sub>)/(1 − f_A)
+4. Tabor: σ<sub>UTS,α′</sub> = H<sub>α′</sub> · 1000/3.24
+5. σ<sub>y,α′</sub> = σ<sub>UTS,α′</sub> / WH<sub>ratio</sub>(CR)
+6. Strain-rate correction ×1.054
+
+**20-point predicted-vs-derived σ_y table** (with K<sub>sub</sub>=150,
+default f<sub>engaged</sub>(CR)):
+
+| CR % | Zone | σ_y pred | σ_y derived (from H) | miss |
+|---:|---|---:|---:|---:|
+| 0  | 0-50    | 1434 | 1355 |  +5.8 % |
+| 0  | Core    | 1425 | 1390 |  +2.5 % |
+| 20 | 0-50    | 1725 | 1684 |  +2.5 % |
+| 20 | Core    | 1935 | 1642 | +17.9 % |
+| 40 | 0-50    | 1638 | 1990 | **−17.7 %** |
+| 40 | Core    | 1872 | 1840 |  +1.8 % |
+| 60 | 0-50    | 1431 | 2044 | **−30.0 %** |
+| 60 | 250-500 | 1615 | 1838 | −12.1 % |
+| 60 | Core    | 1816 | 1775 |  +2.3 % |
+
+Aggregate: 20/20 valid points; mean miss −4.3 %, median +2.0 %, σ ≈ 14 %.
+
+**Critical Phase 3.8b finding — the surface gradient is REVERSED**:
+
+| 60 % CR | predicted | H-derived |
+|---|---:|---:|
+| Surface (zone 1) | 1431 | **2044** |
+| Core | 1816 | 1775 |
+| Gradient direction | surface SOFTER | surface HARDER |
+
+The model predicts surface SOFTER than core because linear-f_A
+interpolation puts more austenite at the surface (drags σ_y down via
+rule-of-mix). The H-derived data shows surface HARDER than core because
+the surface matrix is more heavily strain-hardened (cumulative shear
+from cold rolling), and that effect dominates the small extra γ-induced
+softening at the surface.
+
+**Volume-weighted derived bulk = 1867 MPa at 60 % CR** (within −1.7 %
+of measured 1900). The H + Tabor + WH chain produces internally
+consistent σ_y from microhardness, and through-thickness average
+matches bulk tensile **better than either Phase 3.7b or 3.8a
+microstructure-only predictions**.
+
+**What this tells us about the modeling**:
+
+1. **The H-data-driven approach matches bulk tensile within 2 %.**
+   We've been hand-fitting f<sub>engaged</sub>(CR) and K<sub>sub</sub>
+   to chase the same answer; the H data already gives it directly.
+2. **The microstructure-only model (Phase 3.8a)** misses the surface
+   matrix-hardening gradient. Linear f_A + d_subblock interpolation
+   between surface and core values is too coarse to capture what's
+   really happening at the surface zone.
+3. **The Phase 3.7b empirical f_engaged(CR)** is a fit to bulk tensile;
+   it numerically agrees but for the WRONG REASON (it doesn't capture
+   the surface gradient at all — just adds bulk strength uniformly to
+   match the bulk number).
+4. **Phase 3.8c candidate**: instead of predicting σ_y from
+   microstructure interpolation, USE the measured per-zone H + Eq. 1
+   inversion + Tabor as the model "anchors", then volume-weight to
+   bulk. The chain becomes data-driven rather than first-principles,
+   but quantitatively it's much more accurate.
+
+**Implementation:**
+- `derive_zone_sigma_y_from_nanoindent(cw_pct, zone_label)` — single-zone
+  inversion + Tabor chain.
+- `per_zone_predicted_vs_derived_sweep(...)` — 20-row table comparing
+  predicted to derived per zone.
+- 5 new tests; 160 total pass.
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
