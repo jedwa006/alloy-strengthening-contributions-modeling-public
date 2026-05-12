@@ -42,17 +42,22 @@ git remote remove origin || true
 # Add new patterns here when you have more private content. Using regex
 # rather than glob because git-filter-repo's --path-glob uses fnmatch where
 # '**' doesn't cross directory separators reliably; regex catches everything
-# below `reference docs/` at any depth.
+# below the named directory at any depth.
 #
 # Why .github/workflows/ is excluded: the sync workflow is a tool of the
 # private repo, not project content. Including it in the public mirror would
 # require giving the sync PAT the `workflow` scope, which is broader than
 # needed (the PAT only ever needs to write to the mirror's contents).
+#
+# Why data/xrd/experimental/ is excluded: raw XRD spectra are large source
+# files specific to the user's experimental work; the public mirror should
+# only carry derived analyses + plots, not the source data files.
 echo "==> Rewriting history to remove private content"
 git filter-repo --force \
     --path-regex '^pdf-archive/.*\.pdf$' \
     --path-regex '^reference docs/.*\.pdf$' \
     --path-regex '^\.github/workflows/.*\.ya?ml$' \
+    --path-regex '^data/xrd/experimental/.*$' \
     --invert-paths
 
 # Verify the filter worked: no PDFs in any commit.
