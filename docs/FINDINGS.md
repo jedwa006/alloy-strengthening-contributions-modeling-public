@@ -432,6 +432,46 @@ strain-rate correction before claiming agreement/disagreement.
 Captured in `RollingConditions.tensile_strain_rate_s_inv` and the
 `m54_af550_45_t516_10()` docstring.
 
+### Phase 3.5.2 — Show-your-work for the strain-rate correction `[Phase 3.5.2]`
+
+Made the strain-rate algebra inspectable end-to-end:
+
+- Added `m54model.calibration.strain_rate` with `strain_rate_correction(ε̇_target,
+  ε̇_ref, m)` and `explain_strain_rate_correction(...)` (returns the line-by-line
+  algebra string for notebook display).
+- Defaults: `EPS_DOT_SUN_2022_S_INV = 5e-4`, `EPS_DOT_USER_TENSILE_S_INV = 1e-1`,
+  `M_TEMPERED_M54_DEFAULT = 0.01`. The exponent is empirical (literature range
+  m ∈ [0.005, 0.02] for low-SRS BCC tempered martensite at room temp); Zhu 2025
+  Fig. 12 supports the m ≈ 0.01 choice qualitatively (high-SRS regime kicks in
+  only at ε̇ ≳ 10² s⁻¹, well above the user's 10⁻¹ s⁻¹).
+- Notebook 01 §4b prints the full algebra (200×, ln 200 = 5.298, m·ln = 0.053,
+  exp = 1.054), applies it to the AF+T516/10 baseline (1373 → 1448 MPa), and
+  sweeps m ∈ [0.005, 0.02] to bound the +37 → +149 MPa correction window.
+- Tests in `tests/test_strain_rate.py` lock the +5.4 % default and reject
+  unphysical inputs.
+
+### Phase 3.5.3 — Zhu 2025 eqns 9-14 constants audit `[Phase 3.5.3]`
+
+User asked whether all the strengthening constants from Zhu 2025 §3.4 (eqns
+9-14 and surrounding) are loaded. Audit:
+
+| Zhu eq. | Mechanism | Constants | Status in package |
+|--------:|-----------|-----------|-------------------|
+| 9  | Bailey-Hirsch dislocation                | α=0.25, M=2.5, G=80 GPa, b=0.25 nm | ✓ `Convention.WANG` (α_eff=0.625), `G_MATRIX_GPA`, `B_NM` |
+| 10 | NiAl order (APB cutting)                 | γ_apb, T_l = Gb²/2                 | n/a — M54 has no Al |
+| 11 | NiAl modulus mismatch                    | ΔG = G_NiAl − G_matrix             | n/a — M54 has no Al; `G_NIAL_GPA=88` kept informationally |
+| 12 | NiAl coherency                           | δ ≈ 0.5 % NiAl/matrix misfit       | n/a — M54 has no Al |
+| 13 | Ashby-Orowan M2C                         | 0.26 prefactor                     | ✓ `sigma_orowan_carbide` f_v fallback (Wang Eq. 9 used when spacing measured) |
+| 14 | Pythagorean precipitate sum               | √(σ_NiAl² + σ_M2C²)                | ✓ `SummationStrategy='pythagorean_p'` (default `linear` follows Sun + Zhu top-level convention) |
+|  — | NiAl shearing → looping critical radius   | r_c = 3.8 nm (Yang 2023)           | ✓ `R_C_NIAL_NM` (unused for M54) |
+|  — | M2C shearing → looping critical radius   | not specified by Zhu               | n/a — Wang/Zhu treat M2C as always non-shearable in this size regime |
+
+**Conclusion:** all M54-applicable Zhu 9-14 constants are already in
+`m54model.constants` and used in the strengthening assemblers. The NiAl-
+specific constants (γ_apb, NiAl δ) are deliberately omitted because M54 is
+Al-free; the `G_NIAL_GPA` and `R_C_NIAL_NM` literals are kept for cross-
+reference / future Al-bearing variant studies but are flagged as unused.
+
 ### Phase 3.2 — Mechanism evidence: bimodal grain structure + GND densities `[Phase 3.2]`
 
 Two additional datasets from the user (ASTAR-derived grain size + ASTAR-PED
@@ -673,6 +713,69 @@ similarly low retained-γ content.
   - Apply Olson-Cohen with calibrated (α, β) → strain-induced f_α′.
 - Sum transformed-α′ volume → compressive residual stress field → ΔK_IC.
 - Validate against Mondière's M54 K_IC = 110 MPa·m^(1/2) anchor.
+
+### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
+
+The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
+average σ ≈ σ_y, single ε ≈ 0.10, and uses a heuristic linear ramp
+between "PC mechanical work threshold" and "all γ triggers." Phase 3.6
+should replace these with the actual Patel-Cohen criterion evaluated at
+each material point:
+
+  U(σ_local) + ΔG_chem(T) ≤ −ΔG_crit                  [PC criterion]
+
+where U is the resolved mechanical work on the optimal habit plane (Eq.
+2-6 of Patel-Cohen 1953, already in `patel_cohen_max_work`), ΔG_chem(T)
+is the chemical driving force at ambient (negative — drives the
+transformation), and ΔG_crit is the activation barrier for nucleation.
+
+**Proposed sub-deliverables** (each independent and small enough to land
+on its own merge):
+
+1. **3.6a — Spatial K-field integration.** Replace the bulk-averaged
+   `f_transformed = max(f_PC, f_OC)` in `crack_tip_KIC` with an integral
+   over the plastic zone:
+     - Use the Williams K-field (or HRR for finer detail later) to get
+       σ(r, θ), ε_p(r, θ).
+     - At each (r, θ) in the zone, evaluate U_max via Patel-Cohen and
+       f_α′(ε_p) via Olson-Cohen.
+     - Spatially average the volume-transformation strain to feed
+       McMeeking-Evans.
+   Same Mondière 110 MPa·m^½ anchor; expect ΔK_TRIP estimate to tighten
+   from the current bulk-averaged ~1 MPa·m^½ but stay small (the spatial
+   detail moves the answer 20-30 %, not orders of magnitude, in similar
+   ZrO₂ studies).
+
+2. **3.6b — M54-specific Bain ε^V from XRD.** Once the cw/cr XRD
+   workbook is imported (`data/xrd/experimental/`), refine the default
+   `DEFAULT_EPS_V = 0.04` (Fe-Ni textbook) using actual γ vs α′ lattice
+   parameters from M54 patterns. Expect ε^V_M54 in the 0.035-0.045 range
+   based on Cr/Mo content shifting α′ a₀.
+
+3. **3.6c — Competing-mechanism austenite model.** The non-monotonic
+   cw/cr austenite (Phase 3.1) blocks a global Olson-Cohen fit. Build a
+   two-population model:
+     - Pre-existing reverted γ at lath boundaries: monotonic forward
+       Olson-Cohen consumption.
+     - Mechanically-stabilized γ in shear-band cellular intersections
+       (40 % CR signature): formation rate ∝ shear-band intersection
+       density, forward consumption suppressed by partitioned
+       composition (Ni up, C down).
+   Calibrate against the surface and core curves separately — the 4:1
+   surface:core ratio at 40 % CR is the discriminator.
+
+4. **3.6d — User tensile-data integration.** When the user provides the
+   0 % and 60 % CR tensile curves, validate:
+     - At 0 % CR: model predicts 1373 MPa quasi-static → 1448 MPa at
+       user's 10⁻¹ s⁻¹ rate (apply Phase 3.5.2 strain-rate factor).
+     - At 60 % CR: model has no Hall-Petch refinement input yet for the
+       cw/cr microstructure; Phase 3.6d adds the user's measured grain
+       size + GND density (already in `USER_M54_GRAIN_SIZE` and
+       `USER_M54_GND_DENSITY`) into a `m54_af_t516_10_cw60()` factory.
+
+Order of attack: 3.6a (clean win, no new data) → 3.6d (depends on user
+tensile data being provided) → 3.6c (depends on physical-mechanism
+hypothesis test) → 3.6b (depends on XRD import).
 
 ---
 

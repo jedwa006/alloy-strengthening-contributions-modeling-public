@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.5 complete (McMeeking-Evans crack-tip K_IC). All four σ_y anchors PASS; K_IC predicts ΔK_TRIP < 1 MPa·m^½ at M54's reverted-γ levels. Rolling protocol details now captured (per-pass 0.1-1 %, strip flipping along RD, 200× strain-rate caveat for tensile cross-comparison).
+> **Last updated:** 2026-05-11 — Phase 3.5.2/3 complete: strain-rate correction is now a first-class helper (`m54model.calibration.strain_rate`) with show-your-work in notebook 01 §4b — empirical m=0.01, 200× rate ratio → +5.4 % (~75 MPa at AF+T516/10). Zhu 2025 eqns 9-14 constants audit confirms all M54-applicable terms are loaded. Phase 3.6 plan (spatial K-field PC integration, M54-specific Bain ε^V from XRD, competing-mechanism austenite, tensile-data integration) drafted in `docs/FINDINGS.md` §6.
 
 ## Status
 
