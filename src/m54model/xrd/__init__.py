@@ -25,6 +25,19 @@ from m54model.xrd.peak_analysis import (
     modified_miller_V_gamma,
     nelson_riley_extrapolation,
 )
+from m54model.xrd.williamson_hall import (
+    BURGERS_VECTOR_ALPHA_FE_M,
+    DEFAULT_BETA_INST_DEG,
+    K_ALPHA_BCC_SCREW,
+    PeakBroadening,
+    WHResult,
+    analyze_williamson_hall_all_cr,
+    analyze_williamson_hall_for_cr,
+    dislocation_density_from_microstrain,
+    estimate_fwhm_deg,
+    wh_vs_gnd_for_all_cr,
+    williamson_hall_regression,
+)
 
 __all__ = [
     "LAMBDA_CU_KA1_A",
@@ -42,4 +55,15 @@ __all__ = [
     "XRDAnalysisResult",
     "analyze_xrd_for_cr",
     "analyze_all_cr_conditions",
+    "BURGERS_VECTOR_ALPHA_FE_M",
+    "DEFAULT_BETA_INST_DEG",
+    "K_ALPHA_BCC_SCREW",
+    "PeakBroadening",
+    "WHResult",
+    "analyze_williamson_hall_for_cr",
+    "analyze_williamson_hall_all_cr",
+    "dislocation_density_from_microstrain",
+    "estimate_fwhm_deg",
+    "wh_vs_gnd_for_all_cr",
+    "williamson_hall_regression",
 ]
