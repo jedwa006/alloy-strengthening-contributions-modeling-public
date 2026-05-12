@@ -117,15 +117,43 @@ def sun_2022_af550_45() -> MicrostructuralState:
     )
 
 
+# Phase 3.7b: empirical CR-dependent refinement-engagement fraction.
+# Calibrated to Chapter 4 §"Grain Architecture and Through-Thickness
+# Refinement" qualitative description + Phase 3.7a forward-calc
+# H_α′ data. Justification per CR:
+#   0 %:  no cw → no engagement.
+#   20 %: refinement still surface-localized per Ch 4 ("substructural
+#         heterogeneity at surface; core remains coarse and lath-dominant").
+#         Forward-calc H_α′ at K_sub=150 over-predicted Ch 5 H_α′(20%) by
+#         +17 %, consistent with f_engaged ≈ 0 at 20 %.
+#   40 %: bimodal architecture — fragmented surface zones + remnant lath
+#         core. f_engaged ≈ 0.5-0.7 (partial engagement).
+#   60 %: refinement penetrated through cross-section, "uniformly refined
+#         microstructure" per Ch 4. f_engaged ≈ 1.0.
+DEFAULT_REFINEMENT_ENGAGEMENT_FRACTION_BY_CR = {0: 0.0, 20: 0.0, 40: 0.7, 60: 1.0}
+"""Empirical f_engaged(CR) ∈ [0, 1] that scales the K_sub increment to
+reflect the through-thickness extent of cw-induced sub-block refinement.
+
+At low CR the refinement is surface-localized and contributes little to
+bulk strength; at high CR the refinement is cross-section-wide and
+contributes fully. Calibrated against Ch 4 microstructure descriptions
++ Phase 3.7a H_α′ data.
+
+Replaces the Phase 3.6f assumption that K_sub applies uniformly across
+all CR. Rationale in FINDINGS Phase 3.7b.
+"""
+
+
 def _subblock_hp_increment_MPa(
     cw_pct: int,
     location: str,
     K_sub_MPa_um_half: float,
+    refinement_engagement_fraction: float | None = None,
 ) -> float:
-    """Phase 3.6f: Hall-Petch increment from cw-induced sub-block refinement.
+    """Phase 3.6f / 3.7b: Hall-Petch increment from cw-induced sub-block refinement.
 
-    Δσ<sub>HP,sub</sub> = K<sub>sub</sub> · (d<sub>sub</sub><sup>−½</sup> −
-    d<sub>sub,baseline</sub><sup>−½</sup>)
+    Δσ<sub>HP,sub</sub> = f<sub>engaged</sub>(CR) · K<sub>sub</sub> ·
+                          (d<sub>sub</sub><sup>−½</sup> − d<sub>sub,baseline</sub><sup>−½</sup>)
 
     Computed RELATIVE to the 0 % CR value at the same location, so the
     baseline σ<sub>HP</sub> (which is empirically calibrated to capture
@@ -133,12 +161,25 @@ def _subblock_hp_increment_MPa(
     double-counted. d<sub>sub</sub> = median ASTAR grain size (nm) from
     `USER_M54_GRAIN_SIZE`; falls back to mean-mid when median is None.
 
+    `refinement_engagement_fraction` (Phase 3.7b): if None (default), uses
+    `DEFAULT_REFINEMENT_ENGAGEMENT_FRACTION_BY_CR[cw_pct]`. Pass an
+    explicit float (e.g. 1.0) to recover the Phase 3.6f uniform-K_sub
+    behavior.
+
     Returns 0 when K<sub>sub</sub> = 0 (the default — sub-block HP
-    disabled). Returns 0 at cw_pct=0 by construction.
+    disabled), at cw_pct=0 by construction, or when f<sub>engaged</sub>=0.
     """
     if K_sub_MPa_um_half == 0.0 or cw_pct == 0:
         return 0.0
     from m54model.calibration.user_microstructure_data import grain_size_for_cr
+
+    f_engaged = (
+        refinement_engagement_fraction
+        if refinement_engagement_fraction is not None
+        else DEFAULT_REFINEMENT_ENGAGEMENT_FRACTION_BY_CR.get(cw_pct, 1.0)
+    )
+    if f_engaged == 0.0:
+        return 0.0
 
     g0 = grain_size_for_cr(0, location=location)
     gN = grain_size_for_cr(cw_pct, location=location)
@@ -148,7 +189,7 @@ def _subblock_hp_increment_MPa(
     dN_um = dN_nm / 1000.0
     if d0_um <= 0 or dN_um <= 0:
         return 0.0
-    return K_sub_MPa_um_half * (dN_um ** -0.5 - d0_um ** -0.5)
+    return f_engaged * K_sub_MPa_um_half * (dN_um ** -0.5 - d0_um ** -0.5)
 
 
 def _f_A_for_cr(cw_pct: int, source: str) -> float:
@@ -193,6 +234,7 @@ def m54_af_t516_10_cw(
     ssd_multiplier: float = 1.0,
     subblock_hp_K_MPa_um_half: float = 0.0,
     f_A_source: str | None = None,
+    refinement_engagement_fraction: float | None = None,
 ) -> MicrostructuralState:
     """**Phase 3.6d / 3.6e** — M54 AF + T516/10 + N % cold-rolling state factory.
 
@@ -266,7 +308,10 @@ def m54_af_t516_10_cw(
     rho_BCC_GND = gnd_for_cr(cw_int, location_phase="BCC_median")
     rho_total = ssd_multiplier * rho_BCC_GND
     delta_sigma_subblock_MPa = _subblock_hp_increment_MPa(
-        cw_int, location, subblock_hp_K_MPa_um_half
+        cw_int,
+        location,
+        subblock_hp_K_MPa_um_half,
+        refinement_engagement_fraction=refinement_engagement_fraction,
     )
 
     m2c = m2c_population_af_tempered(T_celsius=516.0, t_hours=10.0)
@@ -306,6 +351,7 @@ def predict_cw_cr_sweep(
     ssd_multiplier: float = 1.0,
     subblock_hp_K_MPa_um_half: float = 0.0,
     f_A_source: str | None = None,
+    refinement_engagement_fraction: float | None = None,
 ) -> list[dict[str, float | str | None]]:
     """Phase 3.6d sweep: predict σ_y at each CR condition and compare to
     measured tensile (where available).
@@ -343,6 +389,7 @@ def predict_cw_cr_sweep(
             ssd_multiplier=ssd_multiplier,
             subblock_hp_K_MPa_um_half=subblock_hp_K_MPa_um_half,
             f_A_source=f_A_source,
+            refinement_engagement_fraction=refinement_engagement_fraction,
         )
         res = assemble_yield_strength(state)
         # Add the cw-induced sub-block HP increment outside the assembler:

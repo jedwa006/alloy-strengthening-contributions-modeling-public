@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.7a: forward-calc auxiliary properties module lands. Tabor hardness + Chapter 5 Eq. 1 phase-correction inverted give per-CR H<sub>α′</sub> predictions matching the paper's measured values within ±6 % at 0/20 % CR using default knobs (no direct hardness calibration). At 40/60 % CR the under-prediction tracks the σ<sub>y</sub> gap. With K<sub>sub</sub>=150, 40/60 % close to ±3 % BUT 20 % over-predicts H<sub>α′</sub> by +17 % — direct evidence that K<sub>sub</sub>=150 is too aggressive at 20 % CR; CR-dependent K<sub>sub</sub>(CR) is the natural fix.
+> **Last updated:** 2026-05-12 — Phase 3.7b: CR-dependent K<sub>sub</sub>(CR) via empirical f<sub>engaged</sub>(CR) refinement-fraction multiplier closes the +17 % H<sub>α′</sub>(20 %) over-prediction from Phase 3.7a. Default engagement table (0 / 0 / 0.7 / 1.0 across 0/20/40/60 % CR) anchored to Ch 4 §"Grain Architecture" qualitative description: refinement is surface-localized at 20 % CR, bimodal at 40 %, cross-section-wide at 60 %. All four H<sub>α′</sub> predictions now land within ±6 % of Ch 5 phase-corrected values without per-CR retuning. 140/140 tests pass.
 
 ## Status
 

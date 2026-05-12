@@ -259,6 +259,7 @@ def predict_derived_properties_cw_cr_sweep(
     work_hardening_ratio: float | None = None,
     H_gamma_GPa: float = DEFAULT_H_GAMMA_GPA,
     subblock_hp_K_MPa_um_half: float = 0.0,
+    refinement_engagement_fraction: float | None = None,
     apply_strain_rate_correction: bool = True,
 ) -> list[dict[str, float | str | None]]:
     """Predict derived properties across the user's cw/cr sweep + compare to
@@ -285,6 +286,7 @@ def predict_derived_properties_cw_cr_sweep(
             float(cw),
             location=location,
             subblock_hp_K_MPa_um_half=subblock_hp_K_MPa_um_half,
+            refinement_engagement_fraction=refinement_engagement_fraction,
         )
         wh_ratio = (
             work_hardening_ratio

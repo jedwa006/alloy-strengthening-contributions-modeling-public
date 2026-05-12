@@ -1434,6 +1434,69 @@ refinement front penetrates inward. Phase 3.7b candidate.
 - `tests/test_derived_properties.py` (14 new tests)
 - 136 total tests pass (was 117 + 14 new + 5 from earlier f_A_source = 136)
 
+### Phase 3.7b — CR-dependent K<sub>sub</sub> via refinement-engagement fraction `[Phase 3.7b]`
+
+Phase 3.7a forward-calc surfaced the issue: K<sub>sub</sub>=150 closes
+the 60 % CR σ<sub>y</sub> gap to +1 % AND the H<sub>α′</sub>(60 %) gap
+to +3 %, but **over-predicts H<sub>α′</sub>(20 %) by +17 %** because
+the refinement at 20 % CR is still surface-localized per Chapter 4
+§"Grain Architecture" (*"substructural heterogeneity at surface; core
+remains coarse and lath-dominant"*). Applying K<sub>sub</sub>=150
+uniformly across all CR violates this through-thickness physics.
+
+**Fix**: scale K<sub>sub</sub> by an empirical f<sub>engaged</sub>(CR)
+∈ [0, 1] that captures the through-thickness extent of cw-induced
+sub-block refinement:
+
+  Δσ<sub>HP,sub</sub> = f<sub>engaged</sub>(CR) · K<sub>sub</sub> ·
+                        (d<sub>sub</sub><sup>−½</sup> − d<sub>sub,baseline</sub><sup>−½</sup>)
+
+| CR % | f<sub>engaged</sub> | Justification |
+|---:|---:|---|
+| 0  | 0.0 | No CW |
+| 20 | 0.0 | Refinement still surface-localized (Ch 4) |
+| 40 | 0.7 | Bimodal architecture: fragmented surface + remnant-lath core (Ch 4) |
+| 60 | 1.0 | Refinement penetrated through cross-section (Ch 4) |
+
+**Result of the calibration:**
+
+| CR % | Ch 5 H<sub>α′</sub> | K<sub>sub</sub>=0 | K<sub>sub</sub>=150 uniform | K<sub>sub</sub>=150 CR-engaged |
+|---:|---:|---:|---:|---:|
+| 0  | 6.8 | 7.21 (+6.0 %) | 7.21 (+6.0 %) | **7.21 (+6.0 %)** |
+| 20 | 8.2 | 8.40 (+2.4 %) | 9.58 (+16.8 %) | **8.40 (+2.4 %)** |
+| 40 | 9.8 | 8.42 (−14.1 %) | 9.62 (−1.8 %) | **9.26 (−5.5 %)** |
+| 60 | 8.9 | 7.69 (−13.6 %) | 9.15 (+2.8 %) | **9.15 (+2.8 %)** |
+
+CR-engaged config is **strictly better than uniform K<sub>sub</sub>** at
+20 % CR (+17 % → +2.4 %), comparable at 40 % CR (slightly worse but
+still within 6 %), and identical at 60 % CR (where f<sub>engaged</sub>
+is 1.0 by construction). All four predictions land within ±6 % of Ch 5
+phase-corrected H<sub>α′</sub> with no per-CR retuning of K<sub>sub</sub>.
+
+**The 0 % CR baseline +6 % bias persists** because no cw-induced knob
+can fix it (it's a baseline σ<sub>HP</sub>/σ<sub>p</sub>(M2C) issue —
+Phase 3.6h diagnosis). The 40 % CR slight degradation (−5.5 % vs
+uniform's −1.8 %) suggests f<sub>engaged</sub>(40 %) = 0.7 might be
+slightly too low — could nudge to 0.8 if a future tensile measurement
+at 40 % CR validates.
+
+**Implemented in:**
+- `m54_af_t516_10_cw(..., refinement_engagement_fraction=None)` — None
+  defaults to `DEFAULT_REFINEMENT_ENGAGEMENT_FRACTION_BY_CR`; pass float
+  to override.
+- `predict_cw_cr_sweep(..., refinement_engagement_fraction=None)` and
+  `predict_derived_properties_cw_cr_sweep(...)` parameters.
+- `_subblock_hp_increment_MPa(cw_pct, location, K_sub, refinement_engagement_fraction)`
+  helper.
+- 5 new tests pinning the engagement table + uniform-fallback (140 total
+  pass).
+
+**Phase 3.7b is the right K<sub>sub</sub>(CR) parametrization for v1.**
+A more rigorous extension (Phase 3.8a candidate) would predict
+σ<sub>y</sub> per through-thickness zone using the user's nanoindent
+zone-resolved data, then volume-weight to bulk — that derives
+f<sub>engaged</sub>(CR) from microstructure rather than calibrating it.
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
