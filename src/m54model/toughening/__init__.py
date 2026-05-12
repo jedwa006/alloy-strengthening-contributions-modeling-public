@@ -13,6 +13,13 @@ from m54model.toughening.crack_tip import (
     crack_tip_KIC,
     crack_tip_KIC_spatial,
 )
+from m54model.toughening.maresca_tensile import (
+    DEFAULT_EPS_BASELINE_MATRIX,
+    DEFAULT_KAPPA_FILM_DIMENSIONLESS,
+    MarescaTensileTougnessPrediction,
+    cw_cr_tensile_toughness_sweep,
+    predict_tensile_toughness_maresca,
+)
 from m54model.toughening.williams_field import (
     StressTensor2D,
     angular_g_factor,
@@ -63,4 +70,10 @@ __all__ = [
     "angular_g_factor",
     "irwin_zone_boundary_m",
     "hrr_radial_rescale",
+    # Phase 3.9a — Maresca-inspired tensile toughness
+    "predict_tensile_toughness_maresca",
+    "cw_cr_tensile_toughness_sweep",
+    "MarescaTensileTougnessPrediction",
+    "DEFAULT_KAPPA_FILM_DIMENSIONLESS",
+    "DEFAULT_EPS_BASELINE_MATRIX",
 ]
