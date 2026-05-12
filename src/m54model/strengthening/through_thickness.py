@@ -415,6 +415,142 @@ def per_zone_predicted_vs_derived_sweep(
     return rows
 
 
+def predict_bulk_sigma_y_h_anchored(
+    cw_pct: int,
+    *,
+    H_gamma_GPa: float = 4.0,
+    tabor_C_uts: float = 3.24,
+    work_hardening_ratio: float | None = None,
+) -> dict[str, float | list]:
+    """Phase 3.8c — H-data-anchored bulk σ_y via per-zone Eq. 1 inversion +
+    volume weighting.
+
+    Replaces the microstructure-only TT mixture (`predict_bulk_sigma_y_through_thickness`,
+    Phase 3.8a) with a chain that USES the user's measured per-zone
+    H_composite as the primary input, derives per-zone σ_y via Phase
+    3.8b's inversion, then volume-weights to bulk.
+
+    **When to use which**:
+
+    - `predict_bulk_sigma_y_through_thickness` (Phase 3.8a, microstructure-
+      only): for prediction at a CR condition where H data does NOT exist;
+      fully ab-initio from microstructure inputs. Will under-predict at
+      high CR by ~10-15 % because the linear f_A interpolation between
+      surface and core misses the surface-matrix-hardening gradient.
+    - **`predict_bulk_sigma_y_h_anchored` (Phase 3.8c, this function)**:
+      when H data IS available at this CR — gives the best bulk match
+      (within ~2 % of measured tensile at the user's 60 % CR baseline).
+      Internally consistent: predicts bulk from the same per-zone H data
+      that drives the underlying gradient story.
+
+    Returns {"bulk_sigma_y_MPa", "zones": [DerivedZoneRow, ...]}.
+    """
+    from m54model.calibration import nanoindent_for_cr
+
+    plate_T = PLATE_THICKNESS_UM_BY_CR.get(cw_pct)
+    if plate_T is None:
+        raise KeyError(f"no default plate thickness for cw_pct={cw_pct}")
+
+    zones = nanoindent_for_cr(cw_pct)
+    if len(zones) != len(ZONE_LABELS):
+        raise ValueError(
+            f"expected {len(ZONE_LABELS)} zones in nanoindent data, got {len(zones)}"
+        )
+
+    derived_rows = []
+    sum_v = 0.0
+    sum_vs = 0.0
+    for zone_label in ZONE_LABELS:
+        derived = derive_zone_sigma_y_from_nanoindent(
+            cw_pct,
+            zone_label,
+            H_gamma_GPa=H_gamma_GPa,
+            tabor_C_uts=tabor_C_uts,
+            work_hardening_ratio=work_hardening_ratio,
+        )
+        if not derived["valid"]:
+            continue
+        v = zone_volume_fraction(zone_label, plate_T)
+        sigma = derived["sigma_y_user_rate_derived_MPa"]
+        sum_v += v
+        sum_vs += v * sigma
+        derived_rows.append(
+            {
+                "zone_label": zone_label,
+                "volume_fraction": v,
+                "sigma_y_user_rate_derived_MPa": round(sigma, 1),
+            }
+        )
+
+    if sum_v <= 0:
+        return {"bulk_sigma_y_MPa": 0.0, "zones": derived_rows}
+    return {
+        "bulk_sigma_y_MPa": round(sum_vs / sum_v, 1),
+        "zones": derived_rows,
+    }
+
+
+def cw_cr_sigma_y_summary(
+    cw_pcts: tuple[int, ...] = (0, 20, 40, 60),
+    *,
+    subblock_hp_K_MPa_um_half: float = 150.0,
+) -> list[dict[str, float | str | None]]:
+    """Phase 3.8c — side-by-side σ_y predictions across all approaches:
+
+    - 3.7b: empirical f_engaged(CR) + K_sub + direct-core
+    - 3.8a: microstructure-only TT mixture (linear f_A + d_sub interp)
+    - 3.8c: H-data-anchored TT (per-zone H + Eq. 1 + Tabor + WH)
+    - measured: bulk tensile (where available)
+
+    For each CR condition: each approach + miss vs measured (if any).
+    """
+    from m54model.calibration import predict_cw_cr_sweep, tensile_for_cr
+
+    rows: list[dict[str, float | str | None]] = []
+    direct_core = {
+        r["cw_pct"]: r
+        for r in predict_cw_cr_sweep(
+            location="core", subblock_hp_K_MPa_um_half=subblock_hp_K_MPa_um_half
+        )
+    }
+    for cw in cw_pcts:
+        tt_3_8a = predict_bulk_sigma_y_through_thickness(
+            cw, subblock_hp_K_MPa_um_half=subblock_hp_K_MPa_um_half
+        )
+        tt_3_8c = predict_bulk_sigma_y_h_anchored(cw)
+        try:
+            t = tensile_for_cr(float(cw))
+            meas = t.sigma_y_MPa
+            std = t.sigma_y_std_MPa
+        except KeyError:
+            meas = None
+            std = None
+
+        sigma_3_7b = direct_core[cw]["sigma_y_user_rate_MPa"]
+        sigma_3_8a = tt_3_8a["bulk_sigma_y_MPa"]
+        sigma_3_8c = tt_3_8c["bulk_sigma_y_MPa"]
+
+        def _miss(pred):
+            if meas is None:
+                return None
+            return round((pred - meas) / meas * 100, 1)
+
+        rows.append(
+            {
+                "cw_pct": cw,
+                "sigma_y_3_7b_empirical_MPa": round(sigma_3_7b, 1),
+                "miss_3_7b_pct": _miss(sigma_3_7b),
+                "sigma_y_3_8a_microstructure_MPa": round(sigma_3_8a, 1),
+                "miss_3_8a_pct": _miss(sigma_3_8a),
+                "sigma_y_3_8c_h_anchored_MPa": round(sigma_3_8c, 1),
+                "miss_3_8c_pct": _miss(sigma_3_8c),
+                "sigma_y_meas_MPa": meas,
+                "sigma_y_meas_std_MPa": std,
+            }
+        )
+    return rows
+
+
 def through_thickness_sweep(
     cw_pcts: tuple[int, ...] = (0, 20, 40, 60),
     *,
