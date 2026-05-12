@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.4 complete (Orowan sub-critical clamp). Phase 3.5 (crack-tip K_IC) next.
+> **Last updated:** 2026-05-12 — Phase 3.5 complete (McMeeking-Evans crack-tip K_IC). All four σ_y anchors PASS; K_IC predicts ΔK_TRIP < 1 MPa·m^½ at M54's reverted-γ levels.
 
 ## Status
 
@@ -24,6 +24,7 @@ GitHub renders these directly in the browser — no clone, no install, no accoun
 
 - 📊 **[`notebooks/01_introduction.ipynb`](notebooks/01_introduction.ipynb)** — Model walkthrough: composition → state → prediction. Stacked-bar contribution decomposition (Wang Fig. 15 style), predicted-vs-measured anchor dashboard, DQ vs AF tempering sweeps, M2C population evolution, K_HP sensitivity.
 - 🔄 **[`notebooks/02_trip_toughening.ipynb`](notebooks/02_trip_toughening.ipynb)** — TRIP submodel: Patel-Cohen 1953 (Fig. 1 reproduction) + Olson-Cohen 1975 (Angel 304 SS sigmoidal family) + the M54 ASTAR cw/cr austenite data with the non-monotonic finding visualized.
+- 💥 **[`notebooks/03_crack_tip_kic.ipynb`](notebooks/03_crack_tip_kic.ipynb)** — Crack-tip K_IC integration via McMeeking-Evans 1982 transformation toughening. Predicts ΔK_TRIP for each calibrated state, solves for the matrix-toughness needed to land at Mondière's K_IC = 110 MPa·m^½, and shows the f_A sweep that bounds where TRIP becomes a primary toughening mechanism (~25 % austenite — much higher than M54's 1-3 %).
 
 For deeper reading, [`docs/FINDINGS.md`](docs/FINDINGS.md) is the running log of model insights, calibration choices, and known biases.
 
