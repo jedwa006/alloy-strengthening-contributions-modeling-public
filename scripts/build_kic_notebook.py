@@ -3,6 +3,7 @@
 Re-generate with:
     uv run python scripts/build_kic_notebook.py
 """
+
 from __future__ import annotations
 
 from pathlib import Path
