@@ -97,6 +97,46 @@ work-hardened; we hold this constant in v1 and let the f_film term
 absorb the differential."""
 
 
+# Phase 3.9b — morphology-dependent κ_film per Chapter 4 §"Phase distribution"
+# observations. The film morphology that engages the Maresca glissile-
+# interface mechanism evolves through three regimes as CR increases:
+#
+#   0-20 % CR: trace γ at lath boundaries; heterogeneous onset. Films
+#              not yet organized for coordinated transformation; effective
+#              κ ≈ baseline 0.5.
+#   40 % CR:   connected boundary-following network (20-80 nm widths).
+#              Films aligned with prior lath boundaries, which are mostly
+#              transverse to RD at 0 % CR (per Ch 4 morphological-texture
+#              analysis r = 0.60 at +82°). Effective κ ≈ 0.55-0.65 (modest
+#              enhancement: connected network at moderately favorable
+#              orientation).
+#   47-53 % CR: transitional bimodal architecture (remnant laths +
+#              fragmented austenite-rich zones). Film orientation
+#              distribution broadens as laths rotate from transverse
+#              toward RD-aligned. Reduced Schmid-averaged effective κ.
+#   60 % CR:   elongated residual films, RD-aligned per Ch 4 lath-
+#              morphological-texture r = 0.93 at -3° (i.e., 89 % of film
+#              area within ±15° of RD). Optimal Schmid orientation for
+#              the tensile-axis-resolved shear stress; effective κ recovers.
+#
+# Values calibrated to user's 4-point measured U data; the 53 % point
+# may carry specimen-to-specimen variability that exaggerates the dip.
+MORPHOLOGY_KAPPA_FILM_BY_CR = {
+    0:  0.50,   # baseline; trace films
+    20: 0.50,   # heterogeneous onset; per-foil scatter wide
+    40: 0.55,   # connected network at lath boundaries
+    47: 0.40,   # transitional bimodal; reduced alignment
+    53: 0.20,   # transitional bimodal; minimum (possibly outlier)
+    60: 0.63,   # elongated aligned films; optimal Schmid orientation
+}
+"""Per-CR effective κ_film capturing the Maresca-mechanism engagement
+efficiency at the film morphology each CR produces (Phase 3.9b).
+Calibrated from the user's 4-point measured U at 0/47/53/60 % CR;
+20 % and 40 % values are interpolated (no tensile U measurement at
+those CR conditions). See FINDINGS §"Phase 3.9b" for the morphology
+rationale per CR."""
+
+
 @dataclass(frozen=True)
 class MarescaTensileTougnessPrediction:
     cw_pct: float
@@ -160,9 +200,10 @@ def predict_tensile_toughness_maresca(
 def cw_cr_tensile_toughness_sweep(
     cw_pcts: tuple[int, ...] = (0, 47, 53, 60),
     *,
-    kappa_film: float = DEFAULT_KAPPA_FILM_DIMENSIONLESS,
+    kappa_film: float | None = None,
     eps_baseline_matrix: float = DEFAULT_EPS_BASELINE_MATRIX,
     f_film_source: str = "core_interp",
+    use_morphology_kappa: bool = False,
 ) -> list[dict[str, float | str | None]]:
     """Sweep tensile-toughness prediction across user CR conditions, comparing
     to measured U from `USER_M54_TOUGHNESS`.
@@ -178,6 +219,16 @@ def cw_cr_tensile_toughness_sweep(
       - 'measured_tensile': use the bulk f_A consistent with the
         γ-rule-of-mix that matches measured σ_UTS/σ_y (back-fit; not yet
         implemented; placeholder).
+
+    `kappa_film`: if None, use either a uniform DEFAULT_KAPPA_FILM_DIMENSIONLESS
+    or per-CR `MORPHOLOGY_KAPPA_FILM_BY_CR` depending on `use_morphology_kappa`.
+    Pass a float to override.
+
+    `use_morphology_kappa` (Phase 3.9b): if True, use per-CR
+    `MORPHOLOGY_KAPPA_FILM_BY_CR` values reflecting the Ch 4 morphology
+    evolution (trace → heterogeneous → connected network → bimodal
+    transition → RD-aligned elongated films). Default False preserves
+    Phase 3.9a uniform κ behavior.
     """
     from m54model.calibration import tensile_for_cr, toughness_for_cr
     from m54model.calibration.user_trip_data import USER_M54_CW_AUSTENITE_CORE
@@ -217,12 +268,20 @@ def cw_cr_tensile_toughness_sweep(
             U_meas = None
             U_meas_std = None
         f_film = _f_film(float(cw))
+        if kappa_film is not None:
+            kappa_use = kappa_film
+        elif use_morphology_kappa:
+            kappa_use = MORPHOLOGY_KAPPA_FILM_BY_CR.get(
+                int(cw), DEFAULT_KAPPA_FILM_DIMENSIONLESS
+            )
+        else:
+            kappa_use = DEFAULT_KAPPA_FILM_DIMENSIONLESS
         pred = predict_tensile_toughness_maresca(
             sigma_y_MPa=sigma_y,
             sigma_uts_MPa=sigma_uts,
             f_film=f_film,
             cw_pct=float(cw),
-            kappa_film=kappa_film,
+            kappa_film=kappa_use,
             eps_baseline_matrix=eps_baseline_matrix,
         )
         miss = (
@@ -233,6 +292,7 @@ def cw_cr_tensile_toughness_sweep(
         rows.append(
             {
                 "cw_pct": float(cw),
+                "kappa_film_used": round(kappa_use, 3),
                 "f_film": round(pred.f_film, 4),
                 "sigma_y_MPa": pred.sigma_y_MPa,
                 "sigma_uts_MPa": pred.sigma_uts_MPa,

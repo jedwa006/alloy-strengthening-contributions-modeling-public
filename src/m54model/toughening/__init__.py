@@ -16,6 +16,7 @@ from m54model.toughening.crack_tip import (
 from m54model.toughening.maresca_tensile import (
     DEFAULT_EPS_BASELINE_MATRIX,
     DEFAULT_KAPPA_FILM_DIMENSIONLESS,
+    MORPHOLOGY_KAPPA_FILM_BY_CR,
     MarescaTensileTougnessPrediction,
     cw_cr_tensile_toughness_sweep,
     predict_tensile_toughness_maresca,
@@ -76,4 +77,5 @@ __all__ = [
     "MarescaTensileTougnessPrediction",
     "DEFAULT_KAPPA_FILM_DIMENSIONLESS",
     "DEFAULT_EPS_BASELINE_MATRIX",
+    "MORPHOLOGY_KAPPA_FILM_BY_CR",
 ]

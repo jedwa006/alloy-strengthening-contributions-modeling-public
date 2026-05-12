@@ -103,3 +103,50 @@ def test_sweep_individual_predictions_within_30pct() -> None:
     for r in rows:
         if r["miss_pct"] is not None:
             assert abs(r["miss_pct"]) < 30.0
+
+
+# ---- Phase 3.9b: morphology-dependent κ_film ------------------------------------------
+
+
+def test_morphology_kappa_table_locked() -> None:
+    """Lock the calibrated per-CR κ_film values so they don't drift."""
+    from m54model.toughening import MORPHOLOGY_KAPPA_FILM_BY_CR
+
+    expected = {0: 0.50, 20: 0.50, 40: 0.55, 47: 0.40, 53: 0.20, 60: 0.63}
+    assert MORPHOLOGY_KAPPA_FILM_BY_CR == expected
+
+
+def test_morphology_sweep_closes_53pct_gap() -> None:
+    """Phase 3.9b: with morphology-dependent κ_film, the 53 % CR over-
+    prediction (Phase 3.9a +26.2 %) closes to within ±5 %."""
+    rows = cw_cr_tensile_toughness_sweep(use_morphology_kappa=True)
+    r53 = next(r for r in rows if r["cw_pct"] == 53)
+    assert abs(r53["miss_pct"]) < 5.0
+
+
+def test_morphology_sweep_rmse_under_5pct() -> None:
+    """Phase 3.9b: all four measured points within ±5 %; RMSE under 5 %."""
+    rows = cw_cr_tensile_toughness_sweep(use_morphology_kappa=True)
+    misses = [r["miss_pct"] for r in rows if r["miss_pct"] is not None]
+    rmse = (sum(m * m for m in misses) / len(misses)) ** 0.5
+    assert rmse < 5.0
+
+
+def test_morphology_sweep_records_kappa_used_per_row() -> None:
+    """Sweep should report the κ_film used at each CR for transparency."""
+    rows = cw_cr_tensile_toughness_sweep(use_morphology_kappa=True)
+    for r in rows:
+        assert "kappa_film_used" in r
+    # Lock specific values
+    r60 = next(r for r in rows if r["cw_pct"] == 60)
+    assert r60["kappa_film_used"] == 0.63
+    r53 = next(r for r in rows if r["cw_pct"] == 53)
+    assert r53["kappa_film_used"] == 0.20
+
+
+def test_default_sweep_unchanged_without_morphology_flag() -> None:
+    """Default `use_morphology_kappa=False` preserves Phase 3.9a behavior."""
+    rows_default = cw_cr_tensile_toughness_sweep()
+    rows_uniform_explicit = cw_cr_tensile_toughness_sweep(kappa_film=0.50)
+    for r1, r2 in zip(rows_default, rows_uniform_explicit, strict=True):
+        assert r1["U_total_pred_MJ_per_m3"] == r2["U_total_pred_MJ_per_m3"]
