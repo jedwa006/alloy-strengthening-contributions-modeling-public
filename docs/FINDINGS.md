@@ -576,7 +576,64 @@ treats M2C as non-shearable at all populations actually present), but if
 we ever model NiAl in a related alloy we'd need an explicit shearing
 term. Tracked in `m54model/strengthening/orowan.py` docstring.
 
-### Phase 3.5 (next) — Crack-tip K_IC integration
+### Phase 3.5 — Crack-tip K_IC integration via McMeeking-Evans `[Phase 3.5]`
+
+Implemented `m54model.toughening.{mcmeeking_evans,crack_tip}` with:
+
+- **McMeeking-Evans 1982 steady-state transformation-toughening formula:**
+  ΔK_IC = A · E · ε^V · √h / (1 - ν), with A = 0.22 (Budiansky-Hutchinson),
+  h ≈ 0.5 r_p, r_p from Irwin plane-strain (1/3π · (K/σ_y)²).
+- **Self-consistent iteration**: K_total = K_matrix + ΔK_TRIP; r_p depends on
+  K_total → fixed-point loop converges in <10 iterations for typical inputs.
+- **Patel-Cohen + Olson-Cohen as triggers**: estimates fraction of f_A that
+  actually transforms. PC at σ_y ≈ 1700 MPa easily clears the typical
+  M_s,chem deficit for Ni-enriched lath-boundary γ → triggers all available
+  austenite. OC default (Angel 304 SS RT params) gives a smaller fraction
+  at typical crack-tip plastic strain.
+- **K_matrix as a calibration parameter**: solved via bisection
+  (`K_matrix_for_target`) to land K_total at any chosen target (e.g.
+  Mondière 110 MPa·m^½).
+
+**Quantitative result for M54 (Phase 3.5 v1, bulk-averaged):**
+
+| State | σ_y (MPa) | f_A | r_p (µm) | ΔK_TRIP | K_total (at K_matrix=70) |
+|-------|----------:|----:|---------:|--------:|------:|
+| DQ + T516/10 (Sun anchor) | 1675 | 0.000 | 174 | 0.0 | 70.0 |
+| AF550/45 + T425/10 (Sun)  | 1748 | 0.000 | 161 | 0.0 | 70.0 |
+| AF550/45 + T516/10 (user) | 1373 | 0.013 | 261 | 0.4 | 70.4 |
+
+To match Mondière's measured K_IC = 110 MPa·m^½, **K_matrix has to be
+~109-110 MPa·m^½** for any of the M54 states. The TRIP contribution is
+under 1 MPa·m^½ at typical M54 reverted-γ levels.
+
+**Interpretation: TRIP is NOT M54's primary toughening mechanism.** With
+~1-3 % reverted austenite at the lath boundaries, the wake transformation
+adds <1 % to K_IC. The bulk of M54's measured 110 MPa·m^½ comes from
+matrix mechanisms — refined martensite blocks deflecting cracks, plastic-
+zone work, ductile dimple formation, carbide-free lath boundaries. Our
+model doesn't try to predict K_matrix from first principles; it's a
+calibration parameter that absorbs everything we don't model.
+
+**For reference**, an f_A sweep at fixed σ_y = 1700, K_matrix = 70 shows
+TRIP becomes substantial (ΔK_TRIP > 30 MPa·m^½) only above f_A ≈ 25 %
+— the metastable austenitic stainless / TRIP-steel regime, not the
+secondary-hardening martensitic UHSS regime M54 sits in. This is
+qualitatively consistent with AerMet 100's similar 126 MPa·m^½ K_IC at
+similarly low retained-γ content.
+
+**Caveats** (Phase 3.6 candidates):
+- Bulk-averaged transformation in the plastic zone — should be spatial
+  integration over an HRR field for high precision.
+- ε^V = 0.04 is the Fe-Ni textbook Bain volumetric strain. M54-specific
+  γ vs α′ lattice parameters from XRD would tighten this by 10-20 %.
+- Olson-Cohen uses 304 SS room-temp (α=3.55, β=0.30) as a literature
+  analog. M54-specific (α, β) is blocked by the non-monotonic cw/cr
+  finding (Phase 3.1) — needs a competing-mechanism model first.
+- M_s_offset_K parameter is set to 0 by default (any tensile stress
+  triggers transformation). For metastable γ films at lath boundaries
+  with positive M_s_offset, less of f_A would trigger via stress-assisted
+  PC and the strain-induced OC pathway would dominate. Sensitivity:
+  ΔK_TRIP scales linearly with the triggered fraction.
 - HRR (or simpler) crack-tip stress field model.
 - For each material point in plastic zone:
   - Apply Patel-Cohen U = τγ₀ + σε₀ → stress-assisted M_s shift.
