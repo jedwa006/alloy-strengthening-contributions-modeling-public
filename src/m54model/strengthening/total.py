@@ -1,4 +1,8 @@
-"""Assemble all strengthening contributions into yield strength."""
+"""Assemble all strengthening contributions into yield strength.
+
+For derived properties (Tabor hardness, composite hardness, UTS via
+work-hardening ratio), see `m54model.strengthening.derived_properties`.
+"""
 
 from __future__ import annotations
 

@@ -1345,6 +1345,85 @@ TEM for M2C, complete XRD-derived γ-fraction).
 over-counts ρ<sub>total</sub>). Reduces the candidate list to the three
 above.
 
+### Phase 3.7a — Forward-calc auxiliary properties (Tabor hardness + Eq. 1) `[Phase 3.7a]`
+
+Phase 3.7 begins the "extend the validation surface" track: take the
+existing σ<sub>y</sub> prediction and forward-derive auxiliary
+properties (UTS, hardness, composite hardness) so we have 3-4 measured
+anchors per CR instead of just 1.
+
+**Implemented in `m54model.strengthening.derived_properties`:**
+
+- Tabor relation `H[GPa] = (C · σ_UTS[MPa]) / 1000` with empirical
+  C ≈ 3.24 calibrated to AF+T M54 0 % CR baseline (σ<sub>UTS</sub>=2100,
+  H<sub>α′</sub>=6.8). Within textbook range for metals with significant
+  strain hardening (2.8-3.5).
+- Chapter 5 Eq. 1 forward + inverted: H<sub>composite</sub> = f<sub>γ</sub>·H<sub>γ</sub> +
+  (1−f<sub>γ</sub>)·H<sub>α′</sub>; H<sub>α′</sub> = (H<sub>composite</sub> −
+  f<sub>γ</sub>·H<sub>γ</sub>) / (1 − f<sub>γ</sub>). H<sub>γ</sub> = 4.0 ± 0.5 GPa
+  per Ch 5 (~15 indents on identifiable γ regions in 0 % CR specimen).
+- `predict_derived_properties(state)` → `DerivedPropertyPrediction`
+- `predict_derived_properties_cw_cr_sweep(...)` returns table-friendly
+  rows comparing predictions to USER_M54_TENSILE + USER_M54_NANOINDENTATION
+  + Chapter 5 Fig 5 phase-corrected H<sub>α′</sub> anchors.
+- CR-dependent default work-hardening ratio (`EMPIRICAL_WORK_HARDENING_RATIO_BY_CR`):
+  1.62 → 1.55 → 1.49 → 1.42 across 0/20/40/60 % CR, linearly
+  interpolated from the user's measured σ<sub>UTS</sub>/σ<sub>y</sub>
+  ratios at 0 %, 47 %, 53 %, 60 % CR.
+
+**Validation against Chapter 5 phase-corrected H<sub>α′</sub>:**
+
+With **default knobs** (no sub-block HP, no SSD multiplier, CR-dependent WH):
+
+| CR % | σ<sub>y</sub>_pred | σ<sub>y</sub>_meas | H<sub>α′</sub>_pred | H<sub>α′</sub>_Ch5 | Δ |
+|---:|---:|---:|---:|---:|---:|
+| 0  | 1420 | 1300 | 7.21 | 6.8 | +6 % |
+| 20 | 1745 | (n/a) | 8.40 | 8.2 | +2 % |
+| 40 | 1695 | (n/a) | 8.42 | 9.8 | −14 % |
+| 60 | 1589 | 1900 | 7.69 | 8.9 | −14 % |
+
+**No direct hardness calibration was done** — the H<sub>α′</sub>_pred
+values come from the strengthening model's σ<sub>y</sub> prediction
+plus the empirical WH ratio plus the Tabor coefficient calibrated only
+to the 0 % CR baseline. Default knobs land 0/20 % within ±6 % of Ch 5;
+40/60 % under-predict by ~14 %, consistent with the σ<sub>y</sub> under-
+prediction at 60 %.
+
+**With K<sub>sub</sub>=150 sub-block HP** (Phase 3.6f):
+
+| CR % | σ<sub>y</sub>_pred | H<sub>α′</sub>_pred | H<sub>α′</sub>_Ch5 | Δ |
+|---:|---:|---:|---:|---:|
+| 0  | 1420 | 7.21 | 6.8 | +6 % |
+| 20 | 1993 | 9.58 | 8.2 | **+17 %** |
+| 40 | 1957 | 9.62 | 9.8 | −2 % |
+| 60 | 1923 | 9.15 | 8.9 | +3 % |
+
+K<sub>sub</sub>=150 closes 40 % and 60 % to ±3 % AND closes the 60 %
+σ<sub>y</sub> gap to +1 %. **But it over-predicts H<sub>α′</sub> at
+20 % CR by +17 %** — direct evidence that K<sub>sub</sub>=150 is too
+aggressive at 20 % CR.
+
+**Working backward**: Ch 5 H<sub>α′</sub>(20 %) = 8.2 GPa implies
+σ<sub>UTS</sub> = 8.2/3.24·1000 = 2531 MPa, hence σ<sub>y</sub>(20 %) ≈
+1633 MPa (with WH=1.55). Default model predicts 1745 (+7 % over);
+K<sub>sub</sub>=150 predicts 1993 (+22 % over). **The 20 % CR data
+suggests σ<sub>y</sub> at 20 % is actually ~7 % below default**, not
+above. Plausibly the same +9 % baseline bias (block size /
+M2C-coarsening / cross-rolled prior) propagating up — both 0 % and
+20 % CR predictions share the same σ<sub>HP</sub> + σ<sub>p</sub>(M2C)
+contributions.
+
+**Useful new lever**: a CR-dependent K<sub>sub</sub>(CR) that's 0 at
+20 % CR (where the sub-block refinement is still surface-localized per
+Chapter 4 §"Grain Architecture") and rises through 40-60 % as the
+refinement front penetrates inward. Phase 3.7b candidate.
+
+**Captured in:**
+- `src/m54model/strengthening/derived_properties.py` (new module, ~300
+  lines)
+- `tests/test_derived_properties.py` (14 new tests)
+- 136 total tests pass (was 117 + 14 new + 5 from earlier f_A_source = 136)
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
