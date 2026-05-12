@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.5 complete (McMeeking-Evans crack-tip K_IC). All four σ_y anchors PASS; K_IC predicts ΔK_TRIP < 1 MPa·m^½ at M54's reverted-γ levels.
+> **Last updated:** 2026-05-12 — Phase 3.5 complete (McMeeking-Evans crack-tip K_IC). All four σ_y anchors PASS; K_IC predicts ΔK_TRIP < 1 MPa·m^½ at M54's reverted-γ levels. Rolling protocol details now captured (per-pass 0.1-1 %, strip flipping along RD, 200× strain-rate caveat for tensile cross-comparison).
 
 ## Status
 

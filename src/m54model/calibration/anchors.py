@@ -121,7 +121,19 @@ def m54_af550_45_t516_10() -> MicrostructuralState:
     """M54 AF550/45 + commercial 516 °C / 10 h temper — the **user's cw/cr baseline**.
 
     NOTE: This is NOT a Sun 2022 anchor (Sun used T425/10). It's the actual
-    starting state for the user's cold-rolling series. Microstructural inputs:
+    starting state for the user's cold-rolling series.
+
+    **Prior history:** the strip was cross-rolled to achieve the ausformed form
+    (or to reach the target geometry post-ausforming) BEFORE the 516 °C / 10 h
+    temper. Cross-rolling means multi-axial deformation in two perpendicular
+    directions before tempering, not the simple uniaxial AF550/45 of Sun 2022.
+    Microstructural impact of the cross-rolling is largely reset by the long
+    high-T temper (M2C precipitation, dislocation recovery), so we use Sun's
+    AF550/45 block + Wang's tempering-invariant block-size assumption as a
+    reasonable proxy. The 0 % CR ASTAR microstructure (Table 3 of user data)
+    confirms this is a fine-block-fine-lath structure consistent with AF.
+
+    Microstructural inputs:
     - Block width 0.48 µm: from Sun's AF state; tempering doesn't refine block
       (Wang 2024 confirms block invariant in DQ across 2-10 h tempering).
     - Dislocation density 1.6 × 10¹⁵ m⁻²: directly from the user's ASTAR-PED
@@ -137,7 +149,12 @@ def m54_af550_45_t516_10() -> MicrostructuralState:
     - C in solid solution: ~0.003 wt% (M2C precipitation depletes matrix C).
 
     No published YS anchor — anchor will come from the user's measurements
-    when available (likely tensile-tested at 0 % CR baseline).
+    when available (tensile-tested at 0 % CR baseline). NB: those tests are
+    at strain rate 10⁻¹ s⁻¹ vs Sun's 5×10⁻⁴ s⁻¹ (200× faster). For tempered
+    M54 with strain-rate sensitivity m ≈ 0.01, expect measured σ_y to be
+    ~5 % above Sun-equivalent quasi-static value. The model predicts
+    quasi-static; remember to multiply by ~1.05 when comparing to user
+    tensile data.
     """
     m2c = m2c_population_af_tempered(T_celsius=516.0, t_hours=10.0)
     return MicrostructuralState(

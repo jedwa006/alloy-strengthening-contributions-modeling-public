@@ -197,20 +197,62 @@ class RollingConditions:
     roller_finish: str
     """Surface finish: 'smooth', 'textured', etc."""
 
+    per_pass_reduction_pct_low: float = 0.0
+    """Lower bound of per-pass thickness reduction (%). Many small passes
+    means low per-pass strain → minimal per-pass adiabatic heating; the
+    cellular shear-band network builds up gradually over many passes
+    rather than from any single high-strain event."""
+
+    per_pass_reduction_pct_high: float = 0.0
+    """Upper bound of per-pass thickness reduction (%)."""
+
+    flipped_along_RD: bool = False
+    """If True, the strip is flipped along the RD axis between passes —
+    bending stresses balance every other pass, but RD remains constant.
+    The deformation is therefore nearly unidirectional in plan view but
+    with a balanced through-thickness gradient."""
+
+    interruption_targets_pct: tuple[float, ...] = ()
+    """Cumulative-reduction interruption points where samples were
+    extracted (e.g. (20.0, 40.0) for the 20%/40% intermediate samples)."""
+
+    tensile_strain_rate_s_inv: float | None = None
+    """Quasi-static tensile-test strain rate (if measured). NOTE on
+    cross-comparing to Sun 2022 (5 × 10⁻⁴ s⁻¹): the user's tensile is at
+    10⁻¹ s⁻¹ — 200× faster. For tempered M54 with strain-rate sensitivity
+    m ≈ 0.01: σ_y(1e-1) / σ_y(5e-4) ≈ (200)^0.01 ≈ 1.054. Multiply Sun-
+    equivalent predictions by ~1.05 when comparing to user tensile data,
+    OR divide user tensile measurements by ~1.05 to recover quasi-static
+    σ_y for direct model comparison."""
+
     notes: str = ""
 
 
 USER_M54_ROLLING_CONDITIONS = RollingConditions(
-    starting_state_label="AF550/45 + T516/10 (commercial 516 °C/10 h temper applied to ausformed)",
+    starting_state_label=(
+        "Cross-rolled into ausformed form + 516 °C / 10 h temper. "
+        "Closer to AF550/45 + T516/10 than DQ + T516/10."
+    ),
     rolling_temperature_C=22.0,
     surface_T_max_observed_C=80.0,  # IR; never exceeded
     strain_rate_m_per_s=0.05,  # ~5 cm/s strip velocity
     max_separating_force_MPa=290.0,  # ≈ 42 ksi
     roller_hardness_HRC=63.0,
-    roller_finish="smooth",
+    roller_finish="smooth (relative)",
+    per_pass_reduction_pct_low=0.1,
+    per_pass_reduction_pct_high=1.0,
+    flipped_along_RD=True,
+    interruption_targets_pct=(20.0, 40.0),  # 60% is the final cumulative
+    tensile_strain_rate_s_inv=1e-1,
     notes=(
-        "Strips touchable at all steps (consistent with surface_T_max < 80 °C). "
-        "IR temperature monitored entering and leaving the bite where possible. "
-        "ASTAR + XRD characterization on the TDRD plane at one rolling surface."
+        "Skin-pass-like accumulative cold work; many passes at 0.1-1 % per pass. "
+        "Strip flipped along RD between passes so bending stresses balance every "
+        "other pass; RD remains constant pass-to-pass. Strips touchable at all "
+        "steps (consistent with surface_T_max < 80 °C). IR temperature monitored "
+        "entering/leaving the bite where possible. ASTAR + XRD characterization "
+        "on the TDRD plane at one rolling surface. Tensile data (when used) at "
+        "1e-1 s⁻¹ (200× faster than Sun 2022's 5e-4 s⁻¹) — apply ~5 % strain-"
+        "rate correction when cross-comparing predictions to measurements; the "
+        "0 % and 60 % tensile samples overlap with the cw/cr series."
     ),
 )

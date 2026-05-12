@@ -408,6 +408,30 @@ then partially retransforms at 60 %.
   forward Olson-Cohen γ → α′ with a separate α′ → γ reverse rate that
   depends on local temperature rise and strain-band density.
 
+### Phase 3.5.1 — Strain-rate caveat for cross-comparing tensile data `[Phase 3.5.1]`
+
+The user's tensile testing was performed at **strain rate 10⁻¹ s⁻¹**
+(slightly faster than the intended quasi-static 10⁻³ s⁻¹). Sun 2022 reports
+σ_y at **5 × 10⁻⁴ s⁻¹** — 200× slower than user's tests.
+
+For tempered M54 with strain-rate sensitivity m ≈ 0.01 (typical for
+secondary-hardening martensitic UHSS):
+
+  σ_y(1e-1) / σ_y(5e-4) ≈ (200)^0.01 ≈ 1.054
+
+So **multiply our quasi-static-calibrated predictions by ~1.05** when
+cross-comparing to the user's tensile data, OR divide user's measured
+σ_y by ~1.05 to recover the Sun-equivalent quasi-static value before
+comparison. Worth ~70-90 MPa in absolute terms at M54 strength levels.
+
+The **0 % CR and 60 % CR tensile samples will overlap** with the cw/cr
+ASTAR/XRD series, so they are useful direct anchors for the AF550/45 +
+T516/10 baseline (and a future AF + T516/10 + 60 % cw state). Apply the
+strain-rate correction before claiming agreement/disagreement.
+
+Captured in `RollingConditions.tensile_strain_rate_s_inv` and the
+`m54_af550_45_t516_10()` docstring.
+
 ### Phase 3.2 — Mechanism evidence: bimodal grain structure + GND densities `[Phase 3.2]`
 
 Two additional datasets from the user (ASTAR-derived grain size + ASTAR-PED
@@ -436,6 +460,15 @@ during any pass (`USER_M54_ROLLING_CONDITIONS`). This **rules out bulk
 adiabatic-heating-driven reverse transformation** as the dominant mechanism —
 the surface is far too cold to reach the chemical Ac1 of any reasonable
 local γ-stabilizing region.
+
+**Per-pass kinematics reinforce this** (added in Phase 3.5 follow-up):
+each pass is only **0.1-1 % thickness reduction**, with strip flipping along
+the RD axis between passes. So per-pass strain (and per-pass dissipated heat)
+is tiny; the cellular network builds up gradually over many passes rather
+than from any single high-strain shock. Adiabatic heating cannot be the
+mechanism because there's no large per-pass thermal spike. Cumulative
+samples at 20 % and 40 % were taken by interrupting the schedule; 60 % is
+the final cumulative reduction.
 
 What survives:
 
