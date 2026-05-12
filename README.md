@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.6c: HRR radial rescaling inside Ω<sub>p</sub> (Hutchinson 1968 singular plastic field, σ ∝ r<sup>−1/(n+1)</sup>) replaces Williams-K's elastic r<sup>−½</sup> inside the plastic zone. Result: ΔK<sub>TRIP</sub> drops 30-40 % at realistic M<sub>s</sub> offsets — the qualitative finding "TRIP < 0.5 MPa·m<sup>½</sup>" tightens to "< 0.3" for M54. Phase 3.6 set complete: spatial K_IC + Bain ε<sup>V</sup> + HRR + cw/cr factory + SSD knob + sub-block HP. Next focus areas: competing-mechanism austenite model for the cw/cr non-monotonicity, and the +9 % baseline σ<sub>y</sub> over-prediction.
+> **Last updated:** 2026-05-12 — Phase 3.6g + 3.6h landed in parallel. **3.6g (WH)**: classical Williamson-Hall on the user's existing XRD spectra at all four CR conditions gives k = ρ<sub>WH</sub>/ρ<sub>GND</sub> ≈ 0.06-0.13 — i.e. ρ<sub>GND</sub> is ~10× ρ<sub>WH</sub>, the *opposite* of a hidden-SSD reservoir. Confirms Phase 3.6e default `ssd_multiplier = 1.0` is correct; sub-block HP (3.6f) is the right knob for the 60 % CR gap. **3.6h (baseline diagnosis)**: sensitivity sweep at 0 % CR finds the +9 % over-prediction is a 3-way contribution (block size cross-rolled vs simple-AF + f<sub>A</sub> source ASTAR-surface vs XRD-bulk + M2C coarsening rate at 516/10), bracket-consistent with the observed +148 MPa. Added `f_A_source` toggle.
 
 ## Status
 
