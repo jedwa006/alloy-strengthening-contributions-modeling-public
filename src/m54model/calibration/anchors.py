@@ -117,11 +117,46 @@ def sun_2022_af550_45() -> MicrostructuralState:
     )
 
 
+def _subblock_hp_increment_MPa(
+    cw_pct: int,
+    location: str,
+    K_sub_MPa_um_half: float,
+) -> float:
+    """Phase 3.6f: Hall-Petch increment from cw-induced sub-block refinement.
+
+    Δσ<sub>HP,sub</sub> = K<sub>sub</sub> · (d<sub>sub</sub><sup>−½</sup> −
+    d<sub>sub,baseline</sub><sup>−½</sup>)
+
+    Computed RELATIVE to the 0 % CR value at the same location, so the
+    baseline σ<sub>HP</sub> (which is empirically calibrated to capture
+    the cellular substructure already present in AF + temper) is not
+    double-counted. d<sub>sub</sub> = median ASTAR grain size (nm) from
+    `USER_M54_GRAIN_SIZE`; falls back to mean-mid when median is None.
+
+    Returns 0 when K<sub>sub</sub> = 0 (the default — sub-block HP
+    disabled). Returns 0 at cw_pct=0 by construction.
+    """
+    if K_sub_MPa_um_half == 0.0 or cw_pct == 0:
+        return 0.0
+    from m54model.calibration.user_microstructure_data import grain_size_for_cr
+
+    g0 = grain_size_for_cr(0, location=location)
+    gN = grain_size_for_cr(cw_pct, location=location)
+    d0_nm = g0.median_grain_area_nm or g0.mean_grain_area_nm_mid
+    dN_nm = gN.median_grain_area_nm or gN.mean_grain_area_nm_mid
+    d0_um = d0_nm / 1000.0
+    dN_um = dN_nm / 1000.0
+    if d0_um <= 0 or dN_um <= 0:
+        return 0.0
+    return K_sub_MPa_um_half * (dN_um ** -0.5 - d0_um ** -0.5)
+
+
 def m54_af_t516_10_cw(
     cw_pct: float,
     *,
     location: str = "surface",
     ssd_multiplier: float = 1.0,
+    subblock_hp_K_MPa_um_half: float = 0.0,
 ) -> MicrostructuralState:
     """**Phase 3.6d / 3.6e** — M54 AF + T516/10 + N % cold-rolling state factory.
 
@@ -162,6 +197,11 @@ def m54_af_t516_10_cw(
         raise ValueError(
             f"ssd_multiplier must be >= 1.0 (1.0 = GND only); got {ssd_multiplier}"
         )
+    if subblock_hp_K_MPa_um_half < 0.0:
+        raise ValueError(
+            "subblock_hp_K_MPa_um_half must be >= 0 "
+            f"(0 = disabled); got {subblock_hp_K_MPa_um_half}"
+        )
     from m54model.calibration.user_microstructure_data import gnd_for_cr
     from m54model.calibration.user_trip_data import (
         USER_M54_CW_AUSTENITE_CORE,
@@ -181,9 +221,18 @@ def m54_af_t516_10_cw(
 
     rho_BCC_GND = gnd_for_cr(cw_int, location_phase="BCC_median")
     rho_total = ssd_multiplier * rho_BCC_GND
+    delta_sigma_subblock_MPa = _subblock_hp_increment_MPa(
+        cw_int, location, subblock_hp_K_MPa_um_half
+    )
 
     m2c = m2c_population_af_tempered(T_celsius=516.0, t_hours=10.0)
-    return MicrostructuralState(
+    parts = []
+    if ssd_multiplier != 1.0:
+        parts.append(f"ρ_SSD ×{ssd_multiplier:.1f}")
+    if subblock_hp_K_MPa_um_half != 0.0:
+        parts.append(f"K_sub={subblock_hp_K_MPa_um_half:.0f} → +{delta_sigma_subblock_MPa:.0f} MPa")
+    suffix = f" ({location}, {'; '.join(parts)})" if parts else f" ({location})"
+    state = MicrostructuralState(
         state="af_tempered_cw",
         block_width_um=0.48,
         packet_size_um=6.7,
@@ -195,12 +244,14 @@ def m54_af_t516_10_cw(
         matrix_at_frac=_matrix_tempered(),
         wt_pct_C_in_solution=0.003,
         precipitates=[m2c],
-        label=(
-            f"M54 AF + T516/10 + {cw_int} % CR ({location}, ρ_SSD ×{ssd_multiplier:.1f})"
-            if ssd_multiplier != 1.0
-            else f"M54 AF + T516/10 + {cw_int} % CR ({location})"
-        ),
+        label=f"M54 AF + T516/10 + {cw_int} % CR{suffix}",
     )
+    # Stash the sub-block HP increment as a private attribute so
+    # `predict_cw_cr_sweep` can pick it up. Frozen-dataclass-safe via
+    # object.__setattr__ (bypasses the dataclass-installed __setattr__
+    # without mutating the dataclass invariants).
+    object.__setattr__(state, "_subblock_HP_increment_MPa", delta_sigma_subblock_MPa)
+    return state
 
 
 def predict_cw_cr_sweep(
@@ -209,6 +260,7 @@ def predict_cw_cr_sweep(
     cw_pcts: tuple[int, ...] = (0, 20, 40, 60),
     apply_strain_rate_correction: bool = True,
     ssd_multiplier: float = 1.0,
+    subblock_hp_K_MPa_um_half: float = 0.0,
 ) -> list[dict[str, float | str | None]]:
     """Phase 3.6d sweep: predict σ_y at each CR condition and compare to
     measured tensile (where available).
@@ -241,10 +293,17 @@ def predict_cw_cr_sweep(
     rows: list[dict[str, float | str | None]] = []
     for cw in cw_pcts:
         state = m54_af_t516_10_cw(
-            float(cw), location=location, ssd_multiplier=ssd_multiplier
+            float(cw),
+            location=location,
+            ssd_multiplier=ssd_multiplier,
+            subblock_hp_K_MPa_um_half=subblock_hp_K_MPa_um_half,
         )
         res = assemble_yield_strength(state)
-        sigma_qs = res.sigma_y_austenite_corrected_MPa
+        # Add the cw-induced sub-block HP increment outside the assembler:
+        # it's a model-form extension specific to cw/cr conditions, not a
+        # property of MicrostructuralState in general.
+        delta_subblock = getattr(state, "_subblock_HP_increment_MPa", 0.0)
+        sigma_qs = res.sigma_y_austenite_corrected_MPa + delta_subblock
         sigma_user = sigma_qs * factor
         try:
             m = tensile_for_cr(float(cw))

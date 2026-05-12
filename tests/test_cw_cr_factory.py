@@ -120,3 +120,41 @@ def test_predict_sweep_with_ssd_multiplier_closes_60pct_gap() -> None:
     # And 0 % CR is *more* over-predicted, not fixed.
     r0 = next(r for r in rows if r["cw_pct"] == 0)
     assert r0["miss_pct"] > 20.0
+
+
+def test_subblock_hp_default_disabled() -> None:
+    """Default subblock_hp_K_MPa_um_half = 0 → no sub-block contribution
+    (preserves Phase 3.6d/e behavior)."""
+    s = m54_af_t516_10_cw(60, location="core")
+    assert getattr(s, "_subblock_HP_increment_MPa", 0.0) == 0.0
+
+
+def test_subblock_hp_zero_at_baseline_by_construction() -> None:
+    """Sub-block HP increment is computed RELATIVE to 0 % CR — so at 0 %
+    it's identically zero regardless of K_sub."""
+    s = m54_af_t516_10_cw(0, location="core", subblock_hp_K_MPa_um_half=200)
+    assert getattr(s, "_subblock_HP_increment_MPa", 0.0) == 0.0
+
+
+def test_subblock_hp_increment_at_60pct_core() -> None:
+    """K_sub = 150 with core baseline d=212 nm → d=51 nm at 60% CR.
+    Δσ = 150 × (1/√0.054 - 1/√0.212) ≈ 150 × 2.13 ≈ 320 MPa."""
+    s = m54_af_t516_10_cw(60, location="core", subblock_hp_K_MPa_um_half=150)
+    delta = getattr(s, "_subblock_HP_increment_MPa", 0.0)
+    assert delta == pytest.approx(320.0, abs=20.0)
+
+
+def test_subblock_hp_negative_K_rejected() -> None:
+    with pytest.raises(ValueError):
+        m54_af_t516_10_cw(60, location="core", subblock_hp_K_MPa_um_half=-50)
+
+
+def test_predict_sweep_subblock_hp_closes_60pct_without_touching_baseline() -> None:
+    """K_sub = 150 closes the 60 % gap to <2 % AND keeps the 0 % miss
+    unchanged at +9 %. This is the cleanest single-knob fix for the
+    cw-induced strengthening gap."""
+    rows = predict_cw_cr_sweep(location="core", subblock_hp_K_MPa_um_half=150)
+    r0 = next(r for r in rows if r["cw_pct"] == 0)
+    r60 = next(r for r in rows if r["cw_pct"] == 60)
+    assert r0["miss_pct"] == pytest.approx(9.2, abs=0.5)  # unchanged from default
+    assert abs(r60["miss_pct"]) < 2.0
