@@ -1165,6 +1165,108 @@ HRR scaling weakens slowly with n. Default n=5 is fine.
 - 6 new tests (102 total pass)
 - Notebook 03 §4b HRR-vs-K table
 
+### Phase 3.6g — Williamson-Hall ρ<sub>total</sub> vs ASTAR ρ<sub>GND</sub> `[Phase 3.6g]`
+
+Phase 3.6e left the SSD multiplier k = ρ<sub>SSD</sub>/ρ<sub>GND</sub> as
+a free knob (default 1.0) because no paper in our refs partitions GND vs
+SSD on cw-martensitic UHSS, and we had no per-sample bulk ρ<sub>total</sub>
+measurement to anchor it. Phase 3.6g closes that loop with a classical
+Williamson-Hall (WH) analysis on the user's existing Cu-equivalent XRD
+spectra at all four CR conditions.
+
+**Method (`m54model.xrd.williamson_hall`):**
+
+1. Per-α′-peak FWHM via half-max-width above a linear baseline (same
+   baseline scheme as `peak_analysis.integrate_peak`); intensity-noise
+   filter at 50 counts above baseline excludes the 220-α at 60 % CR.
+2. Quadrature subtraction of instrumental broadening β<sub>inst</sub> = 0.08°
+   (estimated; no Si standard in workbook — see caveat below).
+3. Gaussian conversion to integral breadth β = FWHM<sub>rad</sub> · √(π/(4 ln 2)).
+4. Linear regression: β·cos θ = K λ/D + 4 ε sin θ → ε (microstrain), D (size).
+5. Total dislocation density: ρ<sub>WH</sub> = K<sub>α</sub>·ε² / b² with
+   K<sub>α</sub> = 14.4 (screw-dominated BCC) and b = 0.248 nm.
+
+**Result table** (per-CR ε, ρ<sub>GND</sub> from `USER_M54_GND_DENSITY` BCC
+median, ρ<sub>WH</sub> from this analysis, k = ρ<sub>WH</sub>/ρ<sub>GND</sub>):
+
+| CR % | ε (×10⁻³) | ρ<sub>GND</sub> (m⁻²) | ρ<sub>WH</sub> (m⁻²) | k = ρ<sub>WH</sub>/ρ<sub>GND</sub> | n peaks used |
+|---:|---:|---:|---:|---:|---:|
+| 0  | 0.89 | 1.6 × 10¹⁵ | 1.85 × 10¹⁴ | **0.12** | 6 |
+| 20 | 1.84 | 6.3 × 10¹⁵ | 7.90 × 10¹⁴ | **0.13** | 6 |
+| 40 | 1.71 | 7.9 × 10¹⁵ | 6.87 × 10¹⁴ | **0.09** | 6 |
+| 60 | 1.23 | 6.3 × 10¹⁵ | 3.56 × 10¹⁴ | **0.06** | 5 |
+
+WH-recovered crystallite size D collapses to 16-19 nm across all CR
+conditions — that's the lath sub-block scale, consistent with the user's
+ASTAR median grain area (51-180 nm) and Sun's nominal block size (480 nm)
+once the WH "column length" is interpreted as the coherently-diffracting
+domain (sub-block, not block).
+
+**Two surprising findings:**
+
+1. **k < 1 at every CR.** ρ<sub>WH</sub> is consistently 6-13 % of
+   ρ<sub>GND</sub> — the *opposite* of the "hidden SSD pile-up" expected
+   in Phase 3.6e. ρ<sub>GND</sub> from ASTAR-PED already exceeds the
+   bulk-WH ρ<sub>total</sub> by an order of magnitude.
+
+2. **k is approximately constant** (0.06-0.13, no monotone trend with
+   CR). If SSD pile-up were growing with deformation, k would rise from
+   0 % → 60 %; it actually drifts slightly *down*, with the 60 % CR
+   point lowest.
+
+**Interpretation:**
+
+Two non-exclusive readings:
+
+(a) **ASTAR-PED over-counts.** Median GND from ASTAR-PED with KAM-style
+extrapolation is known to over-estimate true ρ when grain-boundary
+artefacts and small-n statistics dominate (the 40 % CR ASTAR has only
+n=4 grains — already flagged in `USER_M54_GND_DENSITY` notes). The
+bulk WH ρ is a sample-volume-averaged quantity with very different
+systematic biases.
+
+(b) **Classical WH under-counts in cold-rolled BCC.** The Borbely 2022
+modified-WH (ref `pdf-archive/zhu22_Borbely_2022_WH_dislocation.pdf`)
+documents a typical ~2-3× under-prediction of ρ by classical WH when
+hkl-dependent dislocation contrast factors are ignored — exactly the
+regime here. Even with a 3× upward correction, ρ<sub>WH</sub> would
+still be ≤ ρ<sub>GND</sub>.
+
+**Bottom line for the σ<sub>y</sub> model: k ≈ 1.0 stays the right default.**
+There is no evidence in the user's data for a substantial SSD reservoir
+on top of the GND-only count. If anything, ρ<sub>GND</sub> may itself be
+high — but using ρ<sub>GND</sub> as the σ<sub>ρ</sub>-input under-states
+neither baseline (0 %) nor work-hardened (60 %) yield, and the Phase
+3.6f sub-block HP term already closes the 60 % CR gap to <2 %. The
+remaining +9 % over-prediction at 0 % CR is **not** an SSD/GND issue —
+candidate explanations from Phase 3.6f stand: M2C V<sub>f</sub>
+calibration for the cross-rolled prior history, or a coarser equivalent
+block from multi-axial deformation followed by temper.
+
+**Caveats** (read before quoting absolute ρ<sub>WH</sub>):
+
+- Classical (isotropic) WH; no hkl-dependent contrast factors. Modified-
+  WH (Borbely 2022) typical under-correction of ~2-3× on cold-rolled BCC.
+- β<sub>inst</sub> = 0.08° is estimated, not measured (workbook has no Si
+  or LaB₆ standard scan). Result is insensitive for β<sub>inst</sub> ≲
+  0.15° because all observed FWHMs are ≥ 0.4°.
+- K<sub>α</sub> = 14.4 (screw-dominated BCC) vs 16.1 (edge): ±10 % on ρ.
+- 60 % CR 220-α is in the noise floor (max-h = 16 counts) and excluded.
+- The non-monotone ε(CR) at 40 → 60 % is a real feature of the data, not
+  a bug — high-angle FWHM (222-α) keeps growing with CR but the lower-angle
+  peaks plateau or shrink, which the WH regression resolves into "more
+  size broadening, less strain broadening" at 60 %. A modified-WH would
+  re-distribute these contributions.
+
+**Captured in:**
+- `m54model/xrd/williamson_hall.py` — `analyze_williamson_hall_for_cr`,
+  `wh_vs_gnd_for_all_cr`, `WHResult`, `PeakBroadening`
+- `m54model/xrd/__init__.py` — re-exports
+- `tests/test_williamson_hall.py` — 15 new tests (117 total pass)
+- No change to default σ<sub>y</sub> predictions; WH is an analysis
+  tool, not a calibration anchor (the Phase 3.6e default k = 1.0
+  remains correct).
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
