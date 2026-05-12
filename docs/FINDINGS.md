@@ -1735,6 +1735,44 @@ microstructure-only predictions**.
   predicted to derived per zone.
 - 5 new tests; 160 total pass.
 
+### Phase 3.7c-followup — Maresca framework now usable (bib re-export) `[Phase 3.7c-followup]`
+
+User's Zotero re-export landed at `reference docs/references 5:11:2026,
+3:07:45 PM/`. Net additions relevant to the cw/cr work:
+
+- **`marescaAusteniteLathMartensite2017`** (Acta Mater. 134, 302-323)
+  — atomistic + crystallographic theory of fcc/bcc lath martensite
+  interface. Glissile, athermal interface motion under shear; predicts
+  the "shape deformation" (in-situ transformation strain) that drives
+  toughness contributions. **Newly usable.**
+- **`marescaContributionAustenitemartensiteTransformation2018`** (Acta
+  Mater. 156, 463-478) — multi-scale continuum bridge from atomistic
+  to microstructure scales. Explicitly documents the **forward
+  FCC→BCC as spontaneous, reverse BCC→FCC as requiring high stress**
+  asymmetry, with atomistic basis (Peierls stresses for fcc vs bcc
+  screw dislocations). **Provides published atomistic backing for our
+  Phase 3.6h reverse-PC framing.** Lit-search Phase 3.7c had flagged
+  this as the missing companion to Maresca 2014; now in our bib.
+- **`marescaRoleInterlathRetained2014`** (Modell. Simul. Mater. Sci.
+  Eng. 22, 045011) — already cited; the original interlath-austenite-
+  plasticity paper.
+- **`rezazadeh2024`** (Scr. Mater. 251, 116211) — orientation-dependent
+  lath martensite yielding; useful for interpreting our texture
+  evolution and per-grain heterogeneity.
+
+User's conceptual framing per discussion (2026-05-12): "Maresca's 2014
+work on interlath austenite, similar to the film-like austenite we
+document at 60%, thought to contribute to plasticity at the
+cumulatively 'large' strains, just achieved without instantaneous large
+strains." Our skin-pass schedule (0.5-1 % per pass × 65 passes →
+~61 % cumulative reduction) is precisely the regime Maresca's framework
+addresses — large total strain, small per-pass strain, interlath γ
+films as the deformability carrier.
+
+This framing is now incorporated in the Suveen progress report
+(Section 1 mechanistic framing + Section 6 next-direction option for
+the K_IC story).
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
