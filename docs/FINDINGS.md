@@ -1165,6 +1165,79 @@ HRR scaling weakens slowly with n. Default n=5 is fine.
 - 6 new tests (102 total pass)
 - Notebook 03 §4b HRR-vs-K table
 
+### Phase 3.6h — Diagnosing the +10 % baseline over-prediction `[Phase 3.6h]`
+
+The 0 % CR baseline miss has persisted across Phase 3.6d/e/f (model
+1448 MPa user-rate vs measured 1300 ± 30; +148 MPa, +11 %). One-knob
+sensitivity sweep at AF + T516/10 baseline (each candidate in isolation,
+all values at user 1e-1 s⁻¹ rate):
+
+| Knob | Δ from baseline | Miss % | Plausible? |
+|---|---:|---:|---|
+| **default** (block 0.48 µm, ASTAR-surf f_A=0.013, kinetic M2C) | — | +10.3 % | — |
+| block 0.48 → 0.7 µm (cross-rolled coarser block) | −59 MPa | +5.7 % | very |
+| block 0.48 → 1.0 µm | −106 MPa | +2.1 % | possibly |
+| f_A 1.3 % → 4.8 % (XRD bulk vs ASTAR surface) | −38 MPa | +7.4 % | yes |
+| f_A 1.3 % → 2.6 % (ASTAR core) | −14 MPa | +9.2 % | yes |
+| M2C V_f 0.32 → 0.10 % | 0 MPa | +10.3 % | **non-knob** (formula uses spacing, not V_f) |
+| M2C r 4.35 → 6 nm (more coarsened) | +54 MPa | +14.4 % | (worse — ln term) |
+| M2C L 47 → 70 nm (more coarsened) | −180 MPa | −3.6 % | maybe |
+| M2C L 47 → 100 nm (heavy coarsening) | −294 MPa | −12.3 % | overshoots |
+| ρ 1.6e15 → 1.0e15 (more recovery) | −66 MPa | +5.2 % | possibly |
+
+**Key finding from the diagnostic sweep:**
+
+1. **M2C V_f is a non-knob** — when spacing L is supplied (which it is
+   in our kinetics output), the σ<sub>p</sub> formula uses
+   `0.4 G b / (π √(1−ν))·(1/L)·ln(2 r_s/b)` and V<sub>f</sub> doesn't
+   appear. Changing V<sub>f</sub> alone has no effect. Bug-flavored
+   surprise that's actually correct physics.
+
+2. **M2C kinetics function gives constant V_f for AF state** (0.324 %
+   regardless of T,t). r and L do scale with t (LSW). For our σ_p
+   path, only r and L matter once spacing is set.
+
+3. **Two physically motivated combinations close the gap**:
+   - block=0.7 µm + f_A=4.8 % (XRD bulk) → 1339 MPa, miss +3.0 %
+   - default block + M2C L=70 nm (slightly heavier coarsening at 516/10
+     than Cho-transferred LSW gives) → 1253 MPa, miss −3.6 % (overshoots)
+
+4. **The cleanest single new feature**: an explicit `f_A_source` toggle
+   on the cw factory letting the user choose `'astar_surface'` (default,
+   matches Sun-anchor convention), `'astar_core'` (better for bulk
+   tensile-bar comparison), or `'xrd_bulk'` (Phase 3.6b Modified Miller
+   V<sub>γ</sub>; available at 0 % CR only, falls back to ASTAR core at
+   higher CR where bulk γ peaks are at noise).
+
+**Implemented in:**
+- `m54_af_t516_10_cw(..., f_A_source=None)` and
+  `predict_cw_cr_sweep(..., f_A_source=None)` parameters
+- `_f_A_for_cr(cw_pct, source)` helper
+- 5 new tests (107 total pass)
+
+**NOT implemented yet** (deferred — needs more lit / calibration support):
+- Block-width scaling for cross-rolled prior (would require characterizing
+  cross-rolled-AF + temper block size empirically; user could measure via
+  EBSD on the 0 % CR sample)
+- M2C kinetics recalibration at 516 °C (would require Wang-style TEM
+  measurement on the user's 0 % CR sample)
+
+**Best current explanation of the +10 % bias (working hypothesis):**
+
+| Source | Estimated contribution |
+|---|---:|
+| Block size (cross-rolled-AF coarser than simple-AF 0.48 µm)  | ~50-100 MPa |
+| f_A under-stated (using surface ASTAR instead of bulk γ)      | ~30-50 MPa |
+| M2C coarsening rate (Cho-transfer LSW under-states 516/10)    | ~50-80 MPa  |
+| **Total expected**                                            | **~130-230 MPa** |
+| **Observed miss**                                             | **+148 MPa** |
+
+These three contributions are bracket-consistent with the observed bias.
+None alone is the smoking gun; all three are plausible at the
+model-form / parameter-uncertainty level. Pinning down each would need
+direct measurement on the user's actual 0 % CR sample (EBSD for block,
+TEM for M2C, complete XRD-derived γ-fraction).
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single

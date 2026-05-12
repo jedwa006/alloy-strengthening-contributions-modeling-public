@@ -158,3 +158,42 @@ def test_predict_sweep_subblock_hp_closes_60pct_without_touching_baseline() -> N
     r60 = next(r for r in rows if r["cw_pct"] == 60)
     assert r0["miss_pct"] == pytest.approx(9.2, abs=0.5)  # unchanged from default
     assert abs(r60["miss_pct"]) < 2.0
+
+
+def test_f_A_source_default_is_astar_surface() -> None:
+    """Default behavior unchanged from Phase 3.6d/e/f."""
+    s = m54_af_t516_10_cw(0, location="surface")  # no f_A_source
+    assert s.f_austenite == pytest.approx(0.013, rel=0.01)
+
+
+def test_f_A_source_xrd_bulk_at_baseline() -> None:
+    """XRD-bulk Modified Miller V_γ at 0 % CR = 4.81 % (Phase 3.6b)."""
+    s = m54_af_t516_10_cw(0, location="core", f_A_source="xrd_bulk")
+    assert s.f_austenite == pytest.approx(0.0481, rel=0.01)
+
+
+def test_f_A_source_xrd_bulk_falls_back_at_higher_cr() -> None:
+    """At 20/40/60 % CR the bulk XRD γ peaks are at noise — fallback to
+    ASTAR core (Phase 3.6h)."""
+    from m54model.calibration.user_trip_data import USER_M54_CW_AUSTENITE_CORE
+
+    s = m54_af_t516_10_cw(60, location="core", f_A_source="xrd_bulk")
+    expected = next(p for p in USER_M54_CW_AUSTENITE_CORE if p.cw_pct == 60).f_austenite
+    assert s.f_austenite == pytest.approx(expected, rel=0.01)
+
+
+def test_f_A_source_invalid_raises() -> None:
+    with pytest.raises(ValueError):
+        m54_af_t516_10_cw(0, location="core", f_A_source="banana")
+
+
+def test_f_A_source_xrd_bulk_reduces_baseline_miss() -> None:
+    """XRD-bulk f_A pushes 0 % CR miss DOWN from +10 % to ~+7 %.
+    Documents Phase 3.6h finding that bulk γ-content is a meaningful
+    contributor to the +10 % baseline over-prediction."""
+    rows_default = predict_cw_cr_sweep(location="core")
+    rows_xrd = predict_cw_cr_sweep(location="core", f_A_source="xrd_bulk")
+    r0_default = next(r for r in rows_default if r["cw_pct"] == 0)
+    r0_xrd = next(r for r in rows_xrd if r["cw_pct"] == 0)
+    assert r0_xrd["miss_pct"] < r0_default["miss_pct"]
+    assert r0_xrd["miss_pct"] < 8.0  # ~7.4 % expected

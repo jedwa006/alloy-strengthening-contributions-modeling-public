@@ -151,12 +151,48 @@ def _subblock_hp_increment_MPa(
     return K_sub_MPa_um_half * (dN_um ** -0.5 - d0_um ** -0.5)
 
 
+def _f_A_for_cr(cw_pct: int, source: str) -> float:
+    """Phase 3.6h: f_A pickup with three measurement-source choices.
+
+    'astar_surface' (default) — surface-localized ASTAR map (small sample,
+    catches the surface cellular network, e.g. 26 % at 40 % CR).
+    'astar_core' — through-thickness median ASTAR.
+    'xrd_bulk' — Modified Miller V_γ from the Cu-equivalent XRD spectrum
+    averaged over the bulk irradiated volume; only available at 0 % CR
+    where γ peaks are above noise (4.81 %); fallback to ASTAR core for
+    20/40/60 % CR where bulk XRD shows essentially no γ (Phase 3.6b
+    XRD-vs-ASTAR divergence).
+    """
+    from m54model.calibration.user_trip_data import (
+        USER_M54_CW_AUSTENITE_CORE,
+        USER_M54_CW_AUSTENITE_SURFACE,
+    )
+
+    if source == "astar_surface":
+        ds = USER_M54_CW_AUSTENITE_SURFACE
+    elif source in ("astar_core", "xrd_bulk"):
+        # XRD bulk only has signal at 0 % CR; fallback to ASTAR core.
+        if source == "xrd_bulk" and cw_pct == 0:
+            return 0.0481  # from m54model.xrd analyze_xrd_for_cr(0).V_gamma_pct/100
+        ds = USER_M54_CW_AUSTENITE_CORE
+    else:
+        raise ValueError(
+            f"unknown f_A_source {source!r}; "
+            "expected 'astar_surface', 'astar_core', or 'xrd_bulk'"
+        )
+    pt = next((p for p in ds if p.cw_pct == cw_pct), None)
+    if pt is None:
+        raise KeyError(f"no f_A data at cw_pct={cw_pct}")
+    return pt.f_austenite
+
+
 def m54_af_t516_10_cw(
     cw_pct: float,
     *,
     location: str = "surface",
     ssd_multiplier: float = 1.0,
     subblock_hp_K_MPa_um_half: float = 0.0,
+    f_A_source: str | None = None,
 ) -> MicrostructuralState:
     """**Phase 3.6d / 3.6e** — M54 AF + T516/10 + N % cold-rolling state factory.
 
@@ -212,12 +248,20 @@ def m54_af_t516_10_cw(
         raise ValueError(f"location must be 'surface' or 'core', got {location!r}")
 
     cw_int = int(cw_pct)
-    austenite_dataset = (
-        USER_M54_CW_AUSTENITE_SURFACE if location == "surface" else USER_M54_CW_AUSTENITE_CORE
-    )
-    f_A_pt = next((p for p in austenite_dataset if p.cw_pct == cw_int), None)
-    if f_A_pt is None:
-        raise KeyError(f"no f_A data at cw_pct={cw_pct}, location={location!r}")
+
+    # f_A source: explicit f_A_source argument wins; otherwise fall back to
+    # `location`-derived ASTAR pickup (preserves Phase 3.6d/e/f behavior).
+    if f_A_source is not None:
+        f_A_value = _f_A_for_cr(cw_int, f_A_source)
+    else:
+        austenite_dataset = (
+            USER_M54_CW_AUSTENITE_SURFACE if location == "surface"
+            else USER_M54_CW_AUSTENITE_CORE
+        )
+        f_A_pt = next((p for p in austenite_dataset if p.cw_pct == cw_int), None)
+        if f_A_pt is None:
+            raise KeyError(f"no f_A data at cw_pct={cw_pct}, location={location!r}")
+        f_A_value = f_A_pt.f_austenite
 
     rho_BCC_GND = gnd_for_cr(cw_int, location_phase="BCC_median")
     rho_total = ssd_multiplier * rho_BCC_GND
@@ -239,7 +283,7 @@ def m54_af_t516_10_cw(
         pag_width_um=47.0,
         lath_width_nm=135.0,
         dislocation_density_per_m2=rho_total,
-        f_austenite=f_A_pt.f_austenite,
+        f_austenite=f_A_value,
         f_austenite_kind="reverted",
         matrix_at_frac=_matrix_tempered(),
         wt_pct_C_in_solution=0.003,
@@ -261,6 +305,7 @@ def predict_cw_cr_sweep(
     apply_strain_rate_correction: bool = True,
     ssd_multiplier: float = 1.0,
     subblock_hp_K_MPa_um_half: float = 0.0,
+    f_A_source: str | None = None,
 ) -> list[dict[str, float | str | None]]:
     """Phase 3.6d sweep: predict σ_y at each CR condition and compare to
     measured tensile (where available).
@@ -297,6 +342,7 @@ def predict_cw_cr_sweep(
             location=location,
             ssd_multiplier=ssd_multiplier,
             subblock_hp_K_MPa_um_half=subblock_hp_K_MPa_um_half,
+            f_A_source=f_A_source,
         )
         res = assemble_yield_strength(state)
         # Add the cw-induced sub-block HP increment outside the assembler:
