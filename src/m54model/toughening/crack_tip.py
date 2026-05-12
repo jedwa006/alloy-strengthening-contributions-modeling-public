@@ -40,6 +40,7 @@ from m54model.toughening.mcmeeking_evans import (
 from m54model.toughening.olson_cohen import OlsonCohenParams, olson_cohen_volume_fraction
 from m54model.toughening.patel_cohen import patel_cohen_max_work
 from m54model.toughening.williams_field import (
+    hrr_radial_rescale,
     irwin_zone_boundary_m,
     williams_k_field,
 )
@@ -297,6 +298,7 @@ def _spatial_average_transformed_fraction(
     n_radial: int,
     n_theta: int,
     trigger_combiner: Literal["max", "sum_capped"],
+    use_hrr_radial_rescale: bool = False,
 ) -> tuple[float, float, float, float]:
     """Walk the polar grid (r, θ) ∈ Ω_p (where σ_eq ≥ σ_y), compute
     pointwise f_PC and f_OC, return area-weighted averages.
@@ -332,6 +334,16 @@ def _spatial_average_transformed_fraction(
             if sigma_eq < sigma_y_MPa:
                 continue  # outside Ω_p
             sigma_principal = stress.principal_max_in_plane_MPa
+            # HRR-style rescaling INSIDE Ω_p: replace K-field's r^(-1/2)
+            # with HRR's r^(-1/(n+1)) (Hutchinson 1968 singular plastic
+            # field). Bounded by the same K-field at the boundary.
+            if use_hrr_radial_rescale:
+                sigma_eq = hrr_radial_rescale(
+                    sigma_eq, sigma_y_MPa, r, r_p_local, n_workhardening
+                )
+                sigma_principal = hrr_radial_rescale(
+                    sigma_principal, sigma_y_MPa, r, r_p_local, n_workhardening
+                )
             U_max = patel_cohen_max_work(
                 max(0.0, sigma_principal), gamma_0, eps_0, mode="tension"
             )
@@ -388,6 +400,7 @@ def crack_tip_KIC_spatial(
     trigger_combiner: Literal["max", "sum_capped"] = "max",
     max_iter: int = 25,
     tol_MPa_m_half: float = 0.05,
+    use_hrr_radial_rescale: bool = False,
 ) -> SpatialCrackTipResult:
     """Phase 3.6a — spatial integration of Patel-Cohen + Olson-Cohen over the
     crack-tip plastic zone, replacing the bulk-averaged trigger of
@@ -442,6 +455,7 @@ def crack_tip_KIC_spatial(
             n_radial=n_radial,
             n_theta=n_theta,
             trigger_combiner=trigger_combiner,
+            use_hrr_radial_rescale=use_hrr_radial_rescale,
         )
         # McMeeking-Evans wake height from r_p = (1/3π)(K/σ_y)² (Irwin avg).
         r_p_irwin = (K_total / sigma_y_MPa) ** 2 / (3.0 * math.pi)

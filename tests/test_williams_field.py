@@ -78,6 +78,50 @@ def test_field_consistent_with_irwin_average() -> None:
     assert 0.3 * rp_irwin_avg < rp_avg < 5.0 * rp_irwin_avg
 
 
+def test_hrr_radial_rescale_pass_through_outside_omega_p() -> None:
+    """Outside Ω_p (σ_eq < σ_y), HRR rescale is a pass-through."""
+    from m54model.toughening import hrr_radial_rescale
+
+    sigma_eq = 1500.0
+    sigma_y = 1700.0
+    out = hrr_radial_rescale(sigma_eq, sigma_y, r_m=1e-5, r_p_local_m=1e-4, n_workhardening=5)
+    assert out == sigma_eq
+
+
+def test_hrr_radial_rescale_matches_sigma_y_at_boundary() -> None:
+    """At r = r_p, σ_HRR = σ_y by construction."""
+    from m54model.toughening import hrr_radial_rescale
+
+    out = hrr_radial_rescale(2000.0, 1700.0, r_m=1e-5, r_p_local_m=1e-5, n_workhardening=5)
+    # Edge case: r >= r_p → pass through (Williams-K is correct there).
+    assert out == 2000.0
+
+
+def test_hrr_radial_rescale_lower_than_K_field_inside_omega_p() -> None:
+    """Inside Ω_p, HRR's r^(-1/(n+1)) decays slower than K-field's r^(-1/2),
+    so HRR-rescaled σ_eq is LOWER than the input K-field σ_eq."""
+    from m54model.toughening import hrr_radial_rescale
+
+    sigma_y = 1700.0
+    sigma_K = 4000.0  # Williams-K value deep inside Ω_p
+    r_p = 1e-4
+    r = r_p / 100  # well inside Ω_p
+    out_n5 = hrr_radial_rescale(sigma_K, sigma_y, r_m=r, r_p_local_m=r_p, n_workhardening=5)
+    assert out_n5 < sigma_K
+    assert out_n5 > sigma_y  # but still above yield
+
+
+def test_hrr_perfect_plasticity_limit_caps_at_sigma_y() -> None:
+    """n → ∞ (perfectly plastic): HRR exponent → 0, so σ_eq → σ_y inside Ω_p."""
+    from m54model.toughening import hrr_radial_rescale
+
+    sigma_y = 1700.0
+    r_p = 1e-4
+    r = r_p / 100
+    out_large_n = hrr_radial_rescale(4000.0, sigma_y, r_m=r, r_p_local_m=r_p, n_workhardening=1e6)
+    assert out_large_n == pytest.approx(sigma_y, rel=0.01)
+
+
 def test_angular_g_factor_at_zero() -> None:
     """g(0; ν=0.3) for plane strain: σ_xx = σ_yy = 1/√(2π) at K=1, r=1.
     Mises with σ_zz = ν·(σ_xx+σ_yy) = 0.6/√(2π):

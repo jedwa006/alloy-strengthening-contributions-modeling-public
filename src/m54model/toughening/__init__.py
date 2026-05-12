@@ -16,6 +16,7 @@ from m54model.toughening.crack_tip import (
 from m54model.toughening.williams_field import (
     StressTensor2D,
     angular_g_factor,
+    hrr_radial_rescale,
     irwin_zone_boundary_m,
     williams_k_field,
 )
@@ -61,4 +62,5 @@ __all__ = [
     "StressTensor2D",
     "angular_g_factor",
     "irwin_zone_boundary_m",
+    "hrr_radial_rescale",
 ]

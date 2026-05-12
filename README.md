@@ -2,7 +2,7 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.6f: sub-block Hall-Petch term as a baseline-relative increment closes the 60 % CR gap to **+1 %** (1923 vs 1900 ± 50 MPa) at K<sub>sub</sub> ≈ 150 MPa·µm<sup>½</sup>, **without disturbing the 0 % CR baseline** (+9 % bias unchanged). Sub-block HP is the right knob for cw-induced strengthening; SSD multiplier (Phase 3.6e) was the wrong knob. The +9 % baseline residual is a separate issue — likely cross-rolled prior history or σ<sub>p</sub>(M2C) calibration; deferred to Phase 3.6h+. Up next: Phase 3.6c HRR-J refinement of K<sub>IC</sub> spatial integration.
+> **Last updated:** 2026-05-12 — Phase 3.6c: HRR radial rescaling inside Ω<sub>p</sub> (Hutchinson 1968 singular plastic field, σ ∝ r<sup>−1/(n+1)</sup>) replaces Williams-K's elastic r<sup>−½</sup> inside the plastic zone. Result: ΔK<sub>TRIP</sub> drops 30-40 % at realistic M<sub>s</sub> offsets — the qualitative finding "TRIP < 0.5 MPa·m<sup>½</sup>" tightens to "< 0.3" for M54. Phase 3.6 set complete: spatial K_IC + Bain ε<sup>V</sup> + HRR + cw/cr factory + SSD knob + sub-block HP. Next focus areas: competing-mechanism austenite model for the cw/cr non-monotonicity, and the +9 % baseline σ<sub>y</sub> over-prediction.
 
 ## Status
 

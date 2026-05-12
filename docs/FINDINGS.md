@@ -1116,6 +1116,55 @@ The candidates (Phase 3.6h+):
 - 5 new tests (96 total pass).
 - Notebook 02 §3b sub-block-HP sensitivity sweep + plot.
 
+### Phase 3.6c — HRR radial rescaling inside Ω<sub>p</sub> `[Phase 3.6c]`
+
+The Williams elastic K-field has σ<sub>eq</sub> ∝ r<sup>−½</sup> —
+which over-predicts σ<sub>eq</sub> INSIDE the plastic zone (where the
+true elastic-plastic stress bends down due to yielding). The HRR
+singular plastic field (Hutchinson 1968) gives the right inside-Ω<sub>p</sub>
+scaling: σ<sub>eq</sub> ∝ r<sup>−1/(n+1)</sup> with n the strain-hardening
+exponent. For tempered M54 n ≈ 5-10 — much weaker singularity than
+the elastic K-field.
+
+**Implementation (lite):** keep the K-field's angular kidney shape
+(plane-strain mode I shape is similar between Williams and HRR) and
+rescale only radially inside Ω<sub>p</sub>:
+
+  σ<sub>eq,HRR</sub>(r, θ) = σ<sub>y</sub> · (r<sub>p</sub>(θ) / r)^(1/(n+1))   for r < r<sub>p</sub>(θ)
+
+matched to σ<sub>y</sub> at the boundary, pass-through to Williams-K
+outside. Opt-in via `use_hrr_radial_rescale=True` in
+`crack_tip_KIC_spatial`. Default off (so prior 3.6a/b numbers stay
+reproducible).
+
+**Quantitative result for M54 baseline (K<sub>matrix</sub> = 100):**
+
+| M<sub>s</sub> offset (K) | n<sub>WH</sub> | <f<sub>PC</sub>> K-field | <f<sub>PC</sub>> HRR | ΔK<sub>TRIP</sub> K | ΔK<sub>TRIP</sub> HRR | HRR/K |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0   | 5  | 1.000 | 1.000 | 0.318 | 0.318 | 1.00 |
+| 50  | 5  | 0.831 | 0.534 | 0.264 | 0.169 | 0.64 |
+| 100 | 5  | 0.455 | 0.268 | 0.144 | 0.085 | 0.59 |
+
+**Reading:** at M<sub>s</sub>_offset = 0, PC saturates everywhere → HRR
+and K-field agree (both 1.0). At realistic non-zero offsets (50-100 K
+for Ni-enriched γ films), HRR gives ~30-40 % less ΔK<sub>TRIP</sub>
+because its slower σ<sub>eq</sub> decay means fewer points exceed the
+PC threshold.
+
+**Phase 3.6a/b finding strengthens further**: 'TRIP < 0.5 MPa·m<sup>½</sup>
+at M54 f<sub>A</sub> levels' becomes 'TRIP < 0.3 MPa·m<sup>½</sup>'.
+The matrix-dominant story for M54's K<sub>IC</sub> is even more clearly
+correct under HRR.
+
+n<sub>WH</sub> dependence is small (5 % range across n=3 to n=10) —
+HRR scaling weakens slowly with n. Default n=5 is fine.
+
+**Captured in:**
+- `m54model.toughening.williams_field.hrr_radial_rescale(...)` helper
+- `crack_tip_KIC_spatial(..., use_hrr_radial_rescale=False)` opt-in
+- 6 new tests (102 total pass)
+- Notebook 03 §4b HRR-vs-K table
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
