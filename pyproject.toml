@@ -54,6 +54,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/build_*_notebook.py" = ["E501"]  # cell contents inside string literals
+"src/m54model/calibration/user_*.py" = ["E501"]  # ASCII data tables in module docstrings
 
 [tool.mypy]
 python_version = "3.11"

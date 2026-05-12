@@ -408,6 +408,71 @@ then partially retransforms at 60 %.
   forward Olson-Cohen γ → α′ with a separate α′ → γ reverse rate that
   depends on local temperature rise and strain-band density.
 
+### Phase 3.2 — Mechanism evidence: bimodal grain structure + GND densities `[Phase 3.2]`
+
+Two additional datasets from the user (ASTAR-derived grain size + ASTAR-PED
+extrapolated GND densities, both phase-resolved) reinforce the
+non-monotonic-austenite finding from §6.1 and point at a specific mechanism.
+
+**Bimodal surface microstructure at 40 % CR — the smoking gun:**
+
+| CR  | Loc.    | Mean GA (nm) | %<50 nm | %>200 nm | Characteristic |
+|-----|---------|-------------:|--------:|---------:|----------------|
+|  0  | Surf.   |    62-75     |    35   |    5     | Unimodal lath martensite |
+| 20  | Surf.   |    71-75     |    40   |    8     | Heterogeneous onset |
+| **40** | **Surf.** | **37**   |  **60** |  **20**  | **Bimodal (fine + remnant)** |
+| 60  | Surf.   |    53-116    |    20   |   12     | Unimodal; intermediate refine |
+
+At 40 % CR Surface, grain population is bimodal: 60 % fine (<50 nm) +
+20 % coarse (>200 nm). This is **direct microstructural evidence for the
+cellular shear-band network** the user noted in the f_A table — the fine
+population is consistent with reverted γ nucleating at shear-band
+intersections, the coarse population is remnant un-deformed lath martensite.
+
+**Mechanism story (combining §6.1 + §6.2):**
+
+The non-monotonic austenite spike at 40 % CR Surface is plausibly the
+combined effect of:
+1. **Adiabatic heating at the rolling surface** drives local α′ → γ
+   reverse transformation in Ni-enriched lath-boundary regions.
+2. **Patel-Cohen-driven reverse transformation under compressive normal
+   stress.** For α′ → γ, ε₀ inverts sign (Bain volume contracts), so
+   compression × negative ε₀ favors reverse. PC compression slope
+   +0.72 °C/ksi → ~200 °C M_s shift at typical surface contact stresses,
+   easily into low local Ac1 of Ni-enriched γ-reverted regions.
+3. **Cellular shear-band network at 40 % CR** provides nucleation sites
+   for both mechanisms. Bimodal grain structure observed.
+
+Both 1 and 2 act preferentially at the surface (4:1 surface:core ratio in
+the f_A data is consistent with surface-localized stress concentration +
+adiabatic heating).
+
+**GND density observations:**
+
+| CR  | BCC median ρ (×10¹⁵ m⁻²) | FCC median ρ (×10¹⁶ m⁻²) | n grains BCC |
+|-----|--------------------------:|---------------------------:|--------------|
+|  0  |          1.6              |          6.5               |    34        |
+| 20  |          6.3              |          3.3               |    46        |
+| 40* |          7.9              |          3.8               |     4 *      |
+| 60  |          6.3              |          3.2               |    24        |
+
+(*small n grains for the FCC phase at 40 % — interpret carefully.)
+
+Two surprises:
+- **FCC ρ is ~5–10× higher than BCC ρ** across all CR conditions. The
+  reverted austenite is heavily defected from interface mismatch with the
+  surrounding martensite, even pre-deformation (0 % CR FCC ρ = 6.5e16 m⁻²).
+- **BCC ρ peaks at 40 % CR** (7.9e15 m⁻²) coincident with the austenite
+  spike — energy is concentrated in dislocation walls at the conditions
+  where the cellular network is most active.
+
+**Implication for our model:** σ_A = 360 MPa (Li 2026 C64 textbook value)
+is likely too low for cold-worked M54 reverted austenite. Bailey-Hirsch
+on FCC at ρ = 6.5e16 m⁻² gives σ_y,γ ≈ 660 MPa with FCC constants
+(α≈0.3, G≈75 GPa, b≈0.253 nm, σ_0≈200 MPa). Roughly 2× the textbook value.
+Phase 3.5 should support per-condition σ_A from measured FCC ρ instead of a
+constant 360 MPa default.
+
 ### Phase 3.5 (next) — Crack-tip K_IC integration
 - HRR (or simpler) crack-tip stress field model.
 - For each material point in plastic zone:
