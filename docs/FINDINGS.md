@@ -429,23 +429,79 @@ cellular shear-band network** the user noted in the f_A table — the fine
 population is consistent with reverted γ nucleating at shear-band
 intersections, the coarse population is remnant un-deformed lath martensite.
 
-**Mechanism story (combining §6.1 + §6.2):**
+**Mechanism story (combining §6.1, §6.2, §6.3 rolling conditions):**
 
-The non-monotonic austenite spike at 40 % CR Surface is plausibly the
-combined effect of:
-1. **Adiabatic heating at the rolling surface** drives local α′ → γ
-   reverse transformation in Ni-enriched lath-boundary regions.
-2. **Patel-Cohen-driven reverse transformation under compressive normal
+The user's IR-monitored rolling-surface temperature **never exceeded 80 °C**
+during any pass (`USER_M54_ROLLING_CONDITIONS`). This **rules out bulk
+adiabatic-heating-driven reverse transformation** as the dominant mechanism —
+the surface is far too cold to reach the chemical Ac1 of any reasonable
+local γ-stabilizing region.
+
+What survives:
+
+1. ~~Bulk adiabatic heating at the rolling surface~~ — **ruled out** by IR data.
+2. **Mechanical Patel-Cohen reverse transformation under compressive contact
    stress.** For α′ → γ, ε₀ inverts sign (Bain volume contracts), so
-   compression × negative ε₀ favors reverse. PC compression slope
-   +0.72 °C/ksi → ~200 °C M_s shift at typical surface contact stresses,
-   easily into low local Ac1 of Ni-enriched γ-reverted regions.
-3. **Cellular shear-band network at 40 % CR** provides nucleation sites
-   for both mechanisms. Bimodal grain structure observed.
+   compression × negative ε₀ favors reverse. With max separating force
+   290 MPa (≈ 42 ksi) and Hertzian peak ~2-3× higher (600-900 MPa local
+   contact), PC's +0.72 °C/ksi compression slope gives ~85-200 °C M_s shift —
+   borderline for bulk reverse transformation but **sufficient at local
+   stress concentrations** in shear-band intersections.
+3. **Cellular shear-band network at 40 % CR provides BOTH stress-
+   concentration sites AND localized strain-band heating.** While bulk
+   surface stays cold, the inelastic dissipation rate inside individual
+   shear bands during the brief roll-bite contact can spike local T+stress
+   far above the bulk average. This is the mechanism that the IR can't see
+   (sub-pass time scale, sub-millimeter spatial scale).
 
-Both 1 and 2 act preferentially at the surface (4:1 surface:core ratio in
-the f_A data is consistent with surface-localized stress concentration +
-adiabatic heating).
+The 4:1 surface:core ratio in the f_A data is now attributed to surface-
+localized **stress** (Hertzian contact peaks at the roller-strip interface)
+rather than surface-localized **temperature**. Bimodal grain structure (60 %
+fine + 20 % coarse at 40 % CR Surface) is direct evidence for the cellular
+network providing the nucleation pathway.
+
+**Modeling implication:** the cellular shear-band network is the right
+length scale for the non-monotonic mechanism — bulk-averaged Olson-Cohen +
+bulk Patel-Cohen will continue to under-predict the high-CR austenite. A
+phenomenological "shear-band-mediated reverse-transformation rate" term
+keyed on local plastic strain × local hydrostatic-compression contribution
+is the cleanest path forward (probably Phase 3.6).
+
+### Phase 3.3 — AF+T516/10 prediction is a testable claim `[Phase 3.3]`
+
+The user's actual cw/cr baseline state is **AF550/45 + T516/10** (NOT Sun's
+AF+T425/10). Built `m54_af550_45_t516_10()` factory with:
+- Block 0.48 µm (from AF, invariant in tempering)
+- ρ = 1.6 × 10¹⁵ m⁻² (user's ASTAR-PED at 0 % CR baseline, BCC median)
+- f_A = 0.013 (user's ASTAR phase fraction at 0 % CR Surface)
+- M2C population predicted via Cho-transferred kinetics at (516, 10)
+
+**Model prediction: σ_y ≈ 1373 MPa.**
+
+That's ~390 MPa weaker than DQ+T516/10 (1762, Sun anchor) and ~350 MPa
+weaker than AF+T425/10 (1726, Sun anchor). The reason: ausforming-
+accelerated M2C nucleation reaches saturation V_f early in the 10 h
+hold, then LSW-coarsens for the remaining time at 516 °C — predicted
+r grows to 4.35 nm (vs Wang's 0.85 nm at peak) and L to 47.4 nm (vs
+12.3 nm at peak). The Orowan strength drops accordingly.
+
+This is **the same insight that motivated Sun 2022's AF+T425/10 choice**:
+AF route should be paired with lower-T tempers to keep M2C in the
+small-dense regime. AF+T516/10 over-tempers.
+
+**Testable prediction:** if/when you have a measured YS for the AF+T516/10
+baseline (likely tensile data at 0 % CR), the gap between predicted (1373)
+and measured will tell us:
+- Gap small (within ±5 %) → confirms AF over-tempers at 516/10; the
+  cw/cr work was the right way to recover strength.
+- Predicted is too low (e.g. measured ≈ 1700 MPa) → my K_LSW or
+  Q_coarsen is too aggressive; M2C didn't coarsen as much as Cho's
+  kinetics predict for M54 chemistry. Calibration pull on those constants.
+- Predicted is too high → unlikely given the conservatism, but would
+  point at a model-form issue.
+
+If you ever tensile-tested the 0 % CR baseline, please send the number —
+it's a good cross-validation point for the kinetics module.
 
 **GND density observations:**
 
