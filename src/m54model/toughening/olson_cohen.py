@@ -92,9 +92,7 @@ def fit_olson_cohen(
     def residuals(params_array: list[float]) -> list[float]:
         a, b = params_array
         guess = OlsonCohenParams(alpha=a, beta=b, n=n)
-        return [
-            olson_cohen_volume_fraction(e, guess) - m for e, m in zip(eps, fa, strict=True)
-        ]
+        return [olson_cohen_volume_fraction(e, guess) - m for e, m in zip(eps, fa, strict=True)]
 
     result = least_squares(
         residuals,

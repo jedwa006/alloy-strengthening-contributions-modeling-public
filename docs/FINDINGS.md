@@ -291,6 +291,7 @@ Things we know are wrong or missing, deliberately deferred:
 | Block size doesn't change with tempering | OK to first order (Wang 2024 confirms) | none | n/a |
 | K_LSW for M2C in M54 is order-of-magnitude estimate (5e-31 m³/s) | unknown direction | could shift r at peak by 30 % | TODO in `kinetics/m2c.py` |
 | AF state V_f saturation calibrated via 0.81 stoichiometry scale | calibrated to anchor 4 | tunable knob, uncertainty propagates | `[Phase 2]` |
+| **M54 cw/cr austenite content is non-monotonic in CR** — Olson-Cohen alone cannot model the user's measured behavior | model would over-predict α′ formation in the 40-60 % CR regime where reverse-transformation actually dominates | up to ~25 vol % austenite-content discrepancy at 40 % CR | `[Phase 3]` — see §7 below |
 
 ---
 
@@ -348,6 +349,64 @@ Things we know are wrong or missing, deliberately deferred:
   strain via ε = -ln(1-r). Drop in real values to calibrate M54 reverted-γ
   Olson-Cohen parameters.
 - 10 new validation tests; all 24 tests now pass.
+
+### Phase 3.1 — User's M54 ASTAR cw/cr data, non-monotonic finding `[Phase 3.1]`
+
+ASTAR precession-diffraction-mapped FCC γ phase fractions across 0/20/40/60 %
+cumulative cold rolling, both at the rolling **surface** and through-thickness
+**core** (median along ND-midplane):
+
+| CR % | Surface RA (%) | Core RA (%) | User's annotation                  |
+|-----:|---------------:|------------:|------------------------------------|
+|   0  |    1.3 ± 0.9   |     2.6     | Trace; as-quenched baseline        |
+|  20  |    0.5 ± 0.3   |     1.3     | Heterogeneous onset                |
+|  40  |   26.4 ± 9     |     9.9     | Peak cellular network; 4:1 surface:core |
+|  60  |   17.6 ± 8     |    12.6     | Partial retransformation           |
+
+**The behavior is non-monotonic in CR.** Classical Olson-Cohen predicts f_α′
+monotonically increases with plastic strain → f_A monotonically decreases.
+The user's data shows the opposite story above 20 % CR: austenite content
+**rises sharply** at 40 % CR (surface jumps from 0.5 % to 26.4 %, a 50× jump)
+then partially retransforms at 60 %.
+
+**Implications:**
+
+- Olson-Cohen alone is **insufficient** for M54 reverted austenite under
+  cold rolling. Any α(T), β(T) we fit would over-predict α′ formation in
+  the 40–60 % CR regime where reverse-transformation dominates.
+- The fitter in `m54model.calibration.user_trip_data` defaults to
+  `fit_only_monotonic_prefix=True` and refuses to fit because the
+  monotonic-decreasing prefix has only 2 points (0 → 20 % CR) — too few for
+  two parameters. Forcing a fit on the full data rails α to its upper
+  bound (50), a clear "model is wrong" signal we lock in via test.
+- The 4:1 surface:core ratio at 40 % CR is the **smoking gun** for either
+  surface-localized adiabatic heating during rolling (driving local
+  α′ → γ reverse transformation) or strain partitioning that creates a
+  cellular shear-band substructure stabilizing austenite at the surface.
+
+**Candidate mechanisms** for the high-CR austenite formation/stabilization:
+
+1. **Adiabatic heating at the rolling surface** drives local α′ → γ reverse
+   transformation. Plausible: surface sees highest shear strain rate, so
+   biggest local ΔT.
+2. **Mechanical α′ → γ transformation in shear-band cellular networks** —
+   shear bands at >20 % CR provide energetically-favorable nucleation sites
+   for the reverse transformation.
+3. **TWIP-like substructure** (twin boundaries acting as nucleation sites
+   for retained or reverted austenite stabilization).
+4. **Mechanical alloying through ε-martensite intermediate**: γ → ε → α′ →
+   ε → γ cycle under severe shear.
+
+**Path forward (Phase 3.5):**
+
+- For crack-tip K_IC modeling in Phase 3.5, use Olson-Cohen with
+  literature-analog (α, β) — e.g., Cho 2015 H600 Co-Ni values, or 304 SS
+  RT — explicitly noting this as a calibration gap.
+- Restrict any quantitative TRIP claim to the 0 → 20 % CR (small-strain)
+  regime where classical TRIP applies.
+- Phase 3.6 scope: extend to a **competing mechanism model** combining
+  forward Olson-Cohen γ → α′ with a separate α′ → γ reverse rate that
+  depends on local temperature rise and strain-band density.
 
 ### Phase 3.5 (next) — Crack-tip K_IC integration
 - HRR (or simpler) crack-tip stress field model.

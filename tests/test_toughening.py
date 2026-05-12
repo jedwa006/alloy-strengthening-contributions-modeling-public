@@ -139,3 +139,38 @@ def test_olson_cohen_fit_recovers_input_params() -> None:
     fit = fit_olson_cohen(list(eps), f_target, n=4.5, T_celsius=-188)
     assert abs(fit.alpha - ANGEL_LOW_T.alpha) / ANGEL_LOW_T.alpha < 0.05
     assert abs(fit.beta - ANGEL_LOW_T.beta) / ANGEL_LOW_T.beta < 0.05
+
+
+# ---- M54 cw/cr non-monotonic finding ------------------------------------------------
+
+
+def test_m54_user_data_is_not_monotonic_decreasing() -> None:
+    """Lock in the non-monotonic finding: M54 austenite goes UP between 20 %
+    and 40 % CR (both surface and core). Classical Olson-Cohen cannot fit
+    this — see docs/FINDINGS.md §5 and the user_trip_data module docstring."""
+    import pytest
+
+    from m54model.calibration.user_trip_data import (
+        USER_M54_CW_AUSTENITE_CORE,
+        USER_M54_CW_AUSTENITE_SURFACE,
+        is_monotonic_decreasing,
+        m54_olson_cohen_fit_from_user_data,
+    )
+
+    assert is_monotonic_decreasing(USER_M54_CW_AUSTENITE_SURFACE) is False
+    assert is_monotonic_decreasing(USER_M54_CW_AUSTENITE_CORE) is False
+
+    # Default fit (monotonic-prefix only) raises because the prefix is too short.
+    with pytest.raises(ValueError, match="2"):
+        m54_olson_cohen_fit_from_user_data(USER_M54_CW_AUSTENITE_SURFACE)
+
+    # If we force a fit on the full non-monotonic data, the optimizer hits its
+    # alpha bound (50) — a clear signal the model doesn't fit. We lock that in
+    # so a future change either fixes the data or the model.
+    fit = m54_olson_cohen_fit_from_user_data(
+        USER_M54_CW_AUSTENITE_SURFACE, fit_only_monotonic_prefix=False
+    )
+    assert fit.alpha >= 49.0, (
+        "If alpha no longer rails to 50 on this data, either the optimizer "
+        "or the data has changed — investigate before relaxing this assertion."
+    )
