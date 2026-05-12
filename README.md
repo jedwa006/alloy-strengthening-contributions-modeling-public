@@ -16,7 +16,9 @@ Phase 2 complete — all four Sun 2022 calibration anchors PASS within ±5 %. Ph
 | AF550/45 + T425/10  | 1748 | 1726 | +1.3 % | ✓ PASS |
 
 See [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) for the full architecture and
-[`docs/FINDINGS.md`](docs/FINDINGS.md) for the running insights log.
+[`docs/FINDINGS.md`](docs/FINDINGS.md) for the running insights log. For a
+step-back synthesis of where the predictions come from and what the
+residuals actually tell us, see [`docs/EVALUATION_M54_MODEL_v1.md`](docs/EVALUATION_M54_MODEL_v1.md).
 
 ## Interactive notebooks (browse-without-cloning)
 
