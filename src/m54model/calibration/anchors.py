@@ -117,6 +117,137 @@ def sun_2022_af550_45() -> MicrostructuralState:
     )
 
 
+def m54_af_t516_10_cw(
+    cw_pct: float,
+    *,
+    location: str = "surface",
+) -> MicrostructuralState:
+    """**Phase 3.6d** — M54 AF + T516/10 + N % cold-rolling state factory.
+
+    Builds on `m54_af550_45_t516_10()` (the cw/cr starting state) and swaps
+    in the user's measured cw/cr inputs:
+
+    - **Dislocation density**: from `USER_M54_GND_DENSITY` BCC median ρ at
+      this CR. NOTE this is GND only; total ρ = ρ<sub>GND</sub> + ρ<sub>SSD</sub>
+      is likely higher by ~2× to ~10× depending on CR. So predicted σ<sub>ρ</sub>
+      from this factory is a LOWER BOUND on the dislocation contribution.
+    - **Reverted austenite fraction**: from `USER_M54_CW_AUSTENITE_SURFACE`
+      (or `_CORE` if `location='core'`).
+    - **Block width**: held at 0.48 µm (Sun AF baseline) — cold rolling
+      fragments at the sub-block scale, not the block scale. The
+      sub-block (cell) refinement that ASTAR sees is not captured by
+      block-based Hall-Petch; this is a known under-prediction at high
+      CR (Phase 3.6d gap analysis).
+    - **M2C population**: held at the 516 °C / 10 h post-temper state —
+      cold rolling at room temp (T_max ≈ 80 °C) is too cold for further
+      M2C precipitation/coarsening on the rolling timescale.
+    - **Matrix at-fraction + C in solid solution**: held at tempered values.
+
+    `cw_pct` must be in {0, 20, 40, 60} (the user's ASTAR/GND
+    measurement points). Use 0 to recover `m54_af550_45_t516_10()`
+    directly with the location-specific f_A.
+    """
+    from m54model.calibration.user_microstructure_data import gnd_for_cr
+    from m54model.calibration.user_trip_data import (
+        USER_M54_CW_AUSTENITE_CORE,
+        USER_M54_CW_AUSTENITE_SURFACE,
+    )
+
+    if location not in ("surface", "core"):
+        raise ValueError(f"location must be 'surface' or 'core', got {location!r}")
+
+    cw_int = int(cw_pct)
+    austenite_dataset = (
+        USER_M54_CW_AUSTENITE_SURFACE if location == "surface" else USER_M54_CW_AUSTENITE_CORE
+    )
+    f_A_pt = next((p for p in austenite_dataset if p.cw_pct == cw_int), None)
+    if f_A_pt is None:
+        raise KeyError(f"no f_A data at cw_pct={cw_pct}, location={location!r}")
+
+    rho_BCC_GND = gnd_for_cr(cw_int, location_phase="BCC_median")
+
+    m2c = m2c_population_af_tempered(T_celsius=516.0, t_hours=10.0)
+    return MicrostructuralState(
+        state="af_tempered_cw",
+        block_width_um=0.48,
+        packet_size_um=6.7,
+        pag_width_um=47.0,
+        lath_width_nm=135.0,
+        dislocation_density_per_m2=rho_BCC_GND,  # GND lower-bound; see docstring
+        f_austenite=f_A_pt.f_austenite,
+        f_austenite_kind="reverted",
+        matrix_at_frac=_matrix_tempered(),
+        wt_pct_C_in_solution=0.003,
+        precipitates=[m2c],
+        label=f"M54 AF + T516/10 + {cw_int} % CR ({location})",
+    )
+
+
+def predict_cw_cr_sweep(
+    *,
+    location: str = "core",
+    cw_pcts: tuple[int, ...] = (0, 20, 40, 60),
+    apply_strain_rate_correction: bool = True,
+) -> list[dict[str, float | str | None]]:
+    """Phase 3.6d sweep: predict σ_y at each CR condition and compare to
+    measured tensile (where available).
+
+    Returns list of dicts with keys:
+        cw_pct, sigma_y_qs_MPa, sigma_y_user_rate_MPa, sigma_y_meas_MPa,
+        sigma_y_meas_std_MPa, miss_pct, f_austenite, rho_GND_per_m2.
+
+    `location='core'` is the right default for cross-comparing to a bulk
+    tensile bar (the surface f_A measurement is too localized to
+    represent bulk material). Use `location='surface'` to see the
+    extreme-end prediction at the rolling face.
+    """
+    from m54model.calibration.strain_rate import (
+        EPS_DOT_SUN_2022_S_INV,
+        EPS_DOT_USER_TENSILE_S_INV,
+        strain_rate_correction,
+    )
+    from m54model.calibration.user_mechanical_data import tensile_for_cr
+    from m54model.strengthening import assemble_yield_strength
+
+    factor = (
+        strain_rate_correction(
+            EPS_DOT_USER_TENSILE_S_INV, EPS_DOT_SUN_2022_S_INV, m=0.01
+        )
+        if apply_strain_rate_correction
+        else 1.0
+    )
+
+    rows: list[dict[str, float | str | None]] = []
+    for cw in cw_pcts:
+        state = m54_af_t516_10_cw(float(cw), location=location)
+        res = assemble_yield_strength(state)
+        sigma_qs = res.sigma_y_austenite_corrected_MPa
+        sigma_user = sigma_qs * factor
+        try:
+            m = tensile_for_cr(float(cw))
+            meas = m.sigma_y_MPa
+            meas_std = m.sigma_y_std_MPa
+            miss = (sigma_user - meas) / meas * 100.0
+        except KeyError:
+            meas = None
+            meas_std = None
+            miss = None
+        rows.append(
+            {
+                "cw_pct": float(cw),
+                "location": location,
+                "sigma_y_qs_MPa": round(sigma_qs, 1),
+                "sigma_y_user_rate_MPa": round(sigma_user, 1),
+                "sigma_y_meas_MPa": meas,
+                "sigma_y_meas_std_MPa": meas_std,
+                "miss_pct": round(miss, 1) if miss is not None else None,
+                "f_austenite": state.f_austenite,
+                "rho_GND_per_m2": state.dislocation_density_per_m2,
+            }
+        )
+    return rows
+
+
 def m54_af550_45_t516_10() -> MicrostructuralState:
     """M54 AF550/45 + commercial 516 °C / 10 h temper — the **user's cw/cr baseline**.
 

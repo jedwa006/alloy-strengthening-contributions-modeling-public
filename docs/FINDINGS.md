@@ -948,6 +948,69 @@ Nelson-Riley high-2θ extrapolation, Modified Miller V<sub>γ</sub> (Zhu Eq. 1),
   a separate dedicated investigation if/when surface-prep history is
   recoverable.
 
+### Phase 3.6d — Per-CR σ<sub>y</sub> predictions vs user tensile `[Phase 3.6d]`
+
+Built `m54_af_t516_10_cw(cw_pct, location)` state factory that swaps the
+user's measured BCC GND density (from `USER_M54_GND_DENSITY`) and
+ASTAR f<sub>A</sub> (`USER_M54_CW_AUSTENITE_SURFACE` or `..._CORE`) into
+the AF + T516/10 baseline. Block width and M2C population stay at the
+post-temper baseline (room-temperature CR doesn't move them).
+
+**Results (with strain-rate correction ×1.054 to user's 1e-1 s⁻¹):**
+
+| CR % | f<sub>A</sub> core | ρ<sub>GND</sub> (m⁻²) | σ<sub>y</sub> model (core) | σ<sub>y</sub> model (surface) | σ<sub>y</sub> measured  | miss (core)  |
+|---:|---:|---:|---:|---:|---:|---:|
+|  0  | 0.026 | 1.6×10¹⁵ | 1420 | 1434 | **1300 ± 30** | **+9.2 %** |
+| 20  | 0.013 | 6.3×10¹⁵ | 1745 | 1756 | (no tensile)  |  ―  |
+| 40  | 0.099 | 7.9×10¹⁵ | 1695 | 1454 | (no tensile)  |  ―  |
+| 60  | 0.126 | 6.3×10¹⁵ | 1589 | 1520 | **1900 ± 50** | **−16.4 %** |
+
+(47 % and 53 % measured tensile points exist but have no matching
+ASTAR/GND microstructure inputs — they extend the strain-strength curve
+but can't be predicted via this factory directly.)
+
+**Reading the gap:**
+
+- **0 % CR over-prediction (+9 %)**: same direction as Phase 3.6d-prep.
+  Likely the cross-rolled prior history (multi-axial deformation before
+  the temper) producing a coarser equivalent block than Sun's simple-AF
+  assumption.
+- **40 % CR surface vs core spread (1454 vs 1695 MPa)**: the surface
+  f<sub>A</sub> = 26.4 % spike drags the rule-of-mixtures correction
+  down hard via σ<sub>y</sub>(eff) = (1−f<sub>A</sub>)·σ<sub>M</sub> +
+  f<sub>A</sub>·σ<sub>A</sub> with σ<sub>A</sub>=360. Core f<sub>A</sub>
+  = 9.9 % gives a smaller correction, and bulk XRD V<sub>γ</sub> at 40 %
+  is essentially 0 (Phase 3.6b). For tensile-bar comparison, the core
+  curve is the right pick.
+- **60 % CR under-prediction (−16 %)**: the +600 MPa rise from baseline
+  to 60 % CR (1300 → 1900) is only partially captured (model adds +290
+  MPa). Three plausible missing contributions:
+  1. **SSDs in addition to GNDs**: total ρ = ρ<sub>GND</sub> + ρ<sub>SSD</sub>.
+     ASTAR-PED measures GND only; for heavily worked metals SSDs can be
+     2-10× GND. Doubling σ<sub>ρ</sub> at 60 % would add ~250 MPa.
+  2. **Sub-block refinement** (the user's ASTAR shows 51-57 nm "grains"
+     at 60 % core, far below the 0.48 µm block scale). A separate
+     Hall-Petch term with d<sub>subblock</sub> ≈ 50 nm would add
+     ~200-400 MPa depending on the K<sub>HP</sub>(d<sub>subblock</sub>)
+     calibration.
+  3. **Mechanical aging**: deformation-induced micro-precipitation
+     consuming residual C from solid solution (Phase 3.6b α<sub>0</sub>
+     contraction evidence). This would slightly reduce σ<sub>ss</sub>
+     but increase σ<sub>p</sub> via additional small carbides. Net
+     effect uncertain but could be +50-100 MPa.
+
+The direction-of-effect is right (model σ<sub>y</sub> rises with CR),
+the magnitude is under by ~300 MPa at 60 %. Adding any of the three
+missing physics would require new model terms — Phase 3.6e+ scope. The
+gap analysis is itself the Phase 3.6d v1 deliverable.
+
+**Captured in:**
+- `m54model.calibration.anchors.m54_af_t516_10_cw(cw_pct, location)`
+- `m54model.calibration.anchors.predict_cw_cr_sweep(...)` returns the
+  comparison rows
+- 8 new tests in `tests/test_cw_cr_factory.py` (86 total pass)
+- Notebook 02 §3b: predicted-vs-measured plot with the gap visualized
+
 ### Phase 3.6 — Plan: spatial Patel-Cohen + criterion-based triggering `[Phase 3.6 — planned]`
 
 The Phase 3.5 v1 collapses the crack-tip plastic zone into a single
