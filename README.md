@@ -2,11 +2,11 @@
 
 Quantitative strengthening + toughening model for **Ferrium® M54®** secondary-hardening UHSS, calibrated against four microstructural states: mill-anneal, direct-quench, direct-quench + temper, and ausformed + temper.
 
-> **Last updated:** 2026-05-12 — Phase 3.6b: M54-specific Bain ε^V extracted from user's Cu-equivalent XRD = **+0.022** (half the Fe-Ni textbook +0.04). Default `epsilon_V` in `crack_tip_KIC` swapped over → ΔK_TRIP roughly halves (0.58 → 0.32 MPa·m^½ at M54 baseline); the "TRIP < 1 MPa·m^½" finding now reads "< 0.5 MPa·m^½." Bulk-XRD V_γ disagrees strongly with ASTAR at 40 % CR (0 % bulk vs 26 % surface) — the two techniques sample genuinely different volumes; both correct for their scope.
+> **Last updated:** 2026-05-12 — Phase 3.6b: M54-specific Bain ε<sup>V</sup> extracted from user's Cu-equivalent XRD = **+0.022** (half the Fe-Ni textbook +0.04). Default `epsilon_V` in `crack_tip_KIC` swapped over → ΔK<sub>TRIP</sub> roughly halves (0.58 → 0.32 MPa·m<sup>½</sup> at M54 baseline); the "TRIP < 1 MPa·m<sup>½</sup>" finding now reads "< 0.5 MPa·m<sup>½</sup>." Bulk-XRD V<sub>γ</sub> disagrees strongly with ASTAR at 40 % CR (0 % bulk vs 26 % surface) — the two techniques sample genuinely different volumes; both correct for their scope.
 
 ## Status
 
-Phase 2 complete — all four Sun 2022 calibration anchors PASS within ±5 %. Phase 3 v1 (TRIP submodel equations + M54 cw/cr data) complete; Phase 3.5 (crack-tip K_IC integration) is next.
+Phase 2 complete — all four Sun 2022 calibration anchors PASS within ±5 %. Phase 3 v1 (TRIP submodel equations + M54 cw/cr data) complete; Phase 3.5 (crack-tip K<sub>IC</sub> integration) is next.
 
 | Anchor | Predicted | Measured | Miss | Status |
 |--------|----------:|---------:|-----:|--------|
@@ -22,9 +22,9 @@ See [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) for the full architecture and
 
 GitHub renders these directly in the browser — no clone, no install, no account needed. Plots and tables are pre-executed.
 
-- 📊 **[`notebooks/01_introduction.ipynb`](notebooks/01_introduction.ipynb)** — Model walkthrough: composition → state → prediction. Stacked-bar contribution decomposition (Wang Fig. 15 style), predicted-vs-measured anchor dashboard, DQ vs AF tempering sweeps, M2C population evolution, K_HP sensitivity.
+- 📊 **[`notebooks/01_introduction.ipynb`](notebooks/01_introduction.ipynb)** — Model walkthrough: composition → state → prediction. Stacked-bar contribution decomposition (Wang Fig. 15 style), predicted-vs-measured anchor dashboard, DQ vs AF tempering sweeps, M2C population evolution, K<sub>HP</sub> sensitivity.
 - 🔄 **[`notebooks/02_trip_toughening.ipynb`](notebooks/02_trip_toughening.ipynb)** — TRIP submodel: Patel-Cohen 1953 (Fig. 1 reproduction) + Olson-Cohen 1975 (Angel 304 SS sigmoidal family) + the M54 ASTAR cw/cr austenite data with the non-monotonic finding visualized.
-- 💥 **[`notebooks/03_crack_tip_kic.ipynb`](notebooks/03_crack_tip_kic.ipynb)** — Crack-tip K_IC integration via McMeeking-Evans 1982 transformation toughening. Predicts ΔK_TRIP for each calibrated state, solves for the matrix-toughness needed to land at Mondière's K_IC = 110 MPa·m^½, and shows the f_A sweep that bounds where TRIP becomes a primary toughening mechanism (~25 % austenite — much higher than M54's 1-3 %).
+- 💥 **[`notebooks/03_crack_tip_kic.ipynb`](notebooks/03_crack_tip_kic.ipynb)** — Crack-tip K<sub>IC</sub> integration via McMeeking-Evans 1982 transformation toughening. Predicts ΔK<sub>TRIP</sub> for each calibrated state, solves for the matrix-toughness needed to land at Mondière's K<sub>IC</sub> = 110 MPa·m<sup>½</sup>, and shows the f<sub>A</sub> sweep that bounds where TRIP becomes a primary toughening mechanism (~25 % austenite — much higher than M54's 1-3 %).
 
 For deeper reading, [`docs/FINDINGS.md`](docs/FINDINGS.md) is the running log of model insights, calibration choices, and known biases.
 
@@ -72,8 +72,9 @@ pdf-archive/                   PDFs gathered for the bibliography (private only)
 └── MANIFEST.md                Per-PDF provenance (synced to public)
 data/                          Experimental data
 ├── README.md                   Folder structure + which subfolders are private
-└── xrd/
-    └── experimental/           Raw XRD spectra (private repo only — file size + originality)
+├── xrd/experimental/           Raw XRD spectra workbooks (private)
+├── nanoindentation/experimental/  H + Er depth profiles (private)
+└── tensile/experimental/       Stress-strain curves + K_IC outputs (private)
 src/m54model/                  Python package — alloy/state/precipitate
                                 dataclasses, kinetics, strengthening,
                                 calibration anchors, plotting helpers
