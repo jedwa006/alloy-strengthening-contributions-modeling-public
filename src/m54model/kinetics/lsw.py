@@ -1,7 +1,6 @@
 """Lifshitz-Slyozov-Wagner (LSW) coarsening — r grows as t^(1/3) past peak."""
 
 
-
 def lsw_radius(
     r0_nm: float,
     K_LSW_m3_per_s: float,
