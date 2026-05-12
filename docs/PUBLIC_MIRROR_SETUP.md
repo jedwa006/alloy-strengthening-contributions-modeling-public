@@ -16,13 +16,16 @@ force-overwritten on each sync.
 Everything except files matching the private-content patterns in
 [`scripts/build_public_mirror.sh`](../scripts/build_public_mirror.sh):
 
-- `pdf-archive/*.pdf`
-- `reference docs/**/*.pdf`
+- `pdf-archive/*.pdf`             — literature PDFs we don't have rights to redistribute
+- `reference docs/**/*.pdf`       — same
+- `.github/workflows/**/*.yml`    — sync workflow is a private-repo tool
+- `data/xrd/experimental/**/*`    — raw experimental XRD source files
 
-`pdf-archive/MANIFEST.md` and `references/references.bib` (which document
-the PDFs and their DOIs) **remain in the public mirror**, so anyone reading
-the public mirror can fetch the same papers via Zotero or institutional
-access — they just don't get our local PDF copies.
+Manifests, indexes, derived analyses, and code that uses the data **remain
+in the public mirror** — `pdf-archive/MANIFEST.md`, `references/references.bib`,
+and `data/README.md` all sync, so anyone reading the public mirror can see
+what data exists and fetch the source files via Zotero / institutional
+access (for PDFs) or by request (for experimental data).
 
 ## One-time setup (you do this once, then forget about it)
 
