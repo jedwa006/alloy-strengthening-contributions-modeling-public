@@ -52,10 +52,18 @@ git remote remove origin || true
 # Why data/xrd/experimental/ is excluded: raw XRD spectra are large source
 # files specific to the user's experimental work; the public mirror should
 # only carry derived analyses + plots, not the source data files.
+#
+# Why "reference docs/Chapter [N]_Refs_*" is excluded ENTIRELY (including
+# .bib files): these folders accompany pre-publication draft chapters. The
+# folder + bib together fingerprint exactly which papers an unsubmitted
+# manuscript is citing — that's scoping leakage we'd rather avoid until
+# the chapter is submitted/published. Once submission is public, the
+# folder can be moved out from under this exclusion if desired.
 echo "==> Rewriting history to remove private content"
 git filter-repo --force \
     --path-regex '^pdf-archive/.*\.pdf$' \
     --path-regex '^reference docs/.*\.pdf$' \
+    --path-regex '^reference docs/Chapter [0-9]+_Refs_.*$' \
     --path-regex '^\.github/workflows/.*\.ya?ml$' \
     --path-regex '^data/xrd/experimental/.*$' \
     --path-regex '^data/nanoindentation/experimental/.*$' \
